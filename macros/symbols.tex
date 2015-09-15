@@ -1,0 +1,315 @@
+
+
+%Results
+%Shortcuts
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\N}{\mathbb{N}}
+
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\z}{\mathbf{z}}
+%\newcommand{\A}{\mathbf{A}}
+\newcommand{\bi}{\mathbf{b}}
+\newcommand{\ro}{\mathbf{r}}
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\p}{\mathbf{p}}
+\newcommand{\zero}{\mathbf{0}}
+\newcommand{\ep}{\epsilon}
+\newcommand{\de}{\delta}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   General notation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Epsilon
+\newcommand{\eps}{\varepsilon}
+
+% Extended condition number of A (J. Demmel)
+\newcommand{\kappaFS}{\kappa^2_{\textrm{\tiny F}}}
+\newcommand{\kappaF}{\kappa_{\textrm{\tiny F}}}
+
+
+
+% Absolute Value of a number
+\newcommand{\abs}[1]{\left|#1\right|}
+
+% Optimum
+\def\opt{{\textrm{opt}}}
+
+% Polynomial factors
+\newcommand{\poly}[1]{\mathrm{poly}\left(#1\right) }
+
+% Polylog(n)
+\newcommand{\polylog}[1]{\ensuremath{\operatorname{polylog}\left(#1\right)}}
+
+\newcommand{\sign}[1]{\ensuremath{\operatorname{\textbf{sign}}\left(#1\right)}}
+% Big-Oh Notation
+\newcommand{\OO}{\mathcal{O}}
+
+% Volume of a set
+\newcommand{\vol}[1]{\operatorname{vol}(#1)}
+
+% Real numbers
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\reals}{\mathbb{R}}
+
+% Integers numbers
+\newcommand{\ZZ}{\mathbb{Z}}
+
+% Natural numbers
+\newcommand{\NN}{\mathbb{N}}
+
+% Euler's constant
+\newcommand{\e}{\ensuremath{{\textrm e}}}
+
+% Sparsity of matrix
+\newcommand{\ravg}{\mathrm{R}_{\mathrm{avg}}}
+\newcommand{\cavg}{\mathrm{C}_{\mathrm{avg}}}
+
+% Expectation
+\DeclareMathOperator{\EE}{\mathbb{E}}
+
+% Probability
+\newcommand{\Prob}[1]{\ensuremath{\mathbb{P}\left(#1\right)}}
+% Variance
+\newcommand{\var}[1]{\ensuremath{\mathrm{Var}(#1)}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Several norms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\norm}[1]{\ensuremath{\left\|#1\right\|_2}}
+\newcommand{\pnorm}[1]{\ensuremath{\left\|#1\right\|_p}}
+\newcommand{\qnorm}[1]{\ensuremath{\left\|#1\right\|_q}}
+\newcommand{\infnorm}[1]{\ensuremath{\left\|#1\right\|_\infty}}
+\newcommand{\onenorm}[1]{\ensuremath{\left\|#1\right\|_1}}
+\newcommand{\frobnorm}[1]{\ensuremath{\left\|#1\right\|_{\textrm{F}}}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%=======================
+%% Matrix quantities
+%=======================
+%=======================
+% Stable rank of a matrix
+\newcommand{\sr}[1]{\ensuremath{\operatorname{\textbf{\footnotesize sr}}\left(#1\right)}}
+% Trace of a matrix.
+\newcommand{\trace}[1]{\ensuremath{\operatorname{\textbf{tr}}\left(#1\right)}}
+%\DeclareMathOperator{\trace}{trace}
+% Rank of a matrix
+\newcommand{\rank}[1]{\ensuremath{\operatorname{\textbf{{\footnotesize rank}}}\left(#1\right)}}
+% Kernel of a matrix
+%\newcommand{\ker}[1]{\ensuremath{\mathrm{\textbf{ker}}\left(#1\right)}}
+% Image of a matrix
+\newcommand{\im}[1]{\ensuremath{\operatorname{\textbf{Im}}\left(#1\right)}}
+% Condition number of a matrix
+\newcommand{\cond}[1]{\ensuremath{\operatorname{\mathrm{cond}}\left(#1\right)}}
+% Matrix exponential
+\newcommand{\expm}[1]{\ensuremath{\operatorname{\textbf{\footnotesize exp}}\left[#1\right]}}
+% Matrix Hyperbolic Cosine
+\newcommand{\coshm}[1]{\ensuremath{\operatorname{\textbf{\footnotesize cosh}}\left[#1\right]}}
+% Determinant
+\newcommand{\detm}[1]{\ensuremath{\operatorname{\textbf{det}}\left(#1\right)}}
+% Pseudo-inverse of a matrix
+\newcommand{\pinv}[1]{ {#1}^\dagger}
+
+% Pseudo-inverse of a matrix
+\newcommand{\tpinv}[1]{ {#1}^{\dagger\top}}
+% # of non-zero entries of a matrix
+\newcommand{\nnz}[1]{\ensuremath{\operatorname{\textbf{\footnotesize nnz}}\left(#1\right)}}
+% Diagonal Matrix
+\newcommand{\diag}[1]{\ensuremath{\operatorname{\textbf{diag}}\left(#1\right)}}
+% Column span of a matrix
+\newcommand{\colspan}[1]{\mathcal{R}(#1)}
+% The dilation of a matrix
+\newcommand{\dil}[1]{\ensuremath{\mathcal{D}\left(#1\right)}}
+%=======================
+%=======================
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Vector and matrix operators
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\vct}[1]{\bm{#1}}
+\newcommand{\mtx}[1]{\bm{#1}}
+
+% Inner product
+\newcommand{\ip}[2]{\left\langle {#1},\ {#2} \right\rangle}
+% Matrix inner product ( A \bullet B := tr(AB)
+\newcommand{\mip}[2]{ {#1}\bullet {#2}}
+
+
+
+% Special matrices (CONSTANTS)
+\newcommand{\Id}{\mathbf{I}}
+\newcommand{\J}{\mathbf{J}}
+\newcommand{\onemtx}{\bm{1}}
+\newcommand{\zeromtx}{\mathbf{0}}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\mat}[1]{ {\ensuremath{\mathsf{#1} }}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\def\gammab{{\bm{\gamma}}}
+\def\kappab{{\bm{\kappa}}}
+\def\sig{{\bm{\Sigma}}}
+\def\sigplus{{\bm{\Sigma}^{+}}}
+\def\siginv{{\bm{\Sigma}^{-1}}}
+\def\bet{{\bm{\beta}}}
+\def\one{{\bm{1}}}
+\def\exp{\hbox{\textrm exp}}
+\def\col{\hbox{\textrm col}}
+\def\ker{\hbox{\textrm ker}}
+\def\ahat{{\hat\a}}
+\def\p{{\mathbf p}}
+\def\e{{\mathbf e}}
+\def\q{{\mathbf q}}
+\def\rb{{\mathbf r}}
+\def\s{{\mathbf s}}
+\def\u{{\mathbf u}}
+\def\v{{\mathbf v}}
+\def\d{{\mathbf \delta}}
+\def\xhat{{\hat\x}}
+\def\yhat{{\hat\y}}
+\def\A{\matA}
+\def\B{\matB}
+\def\C{\matC}
+\def\Ahat{\hat\matA}
+\def\Atilde{\tilde\matA}
+\def\Btilde{\tilde\matB}
+\def\Stilde{\tilde\matS}
+\def\Utilde{\tilde\matU}
+\def\Vtilde{\tilde\matV}
+\def\G{{\cl G}}
+\def\hset{{\cl H}}
+\def\Q{{\bm{Q}}}
+\def\U{{\bm{U}}}
+\def\V{{\bm{V}}}
+\def\win{\hat{\w}}
+\def\wopt{\w^*}
+\def\matAhat{\hat\mat{A}}
+\def\matA{\mat{A}}
+\def\matB{\mat{B}}
+\def\matC{\mat{C}}
+\def\matD{\mat{D}}
+\def\matE{\mat{E}}
+\def\matG{\mat{G}}
+\def\matH{\mat{H}}
+\newcommand{\matI}{\Id} % This matrix is reserved for the Identity matrix
+\def\matM{\mat{M}}
+\def\matP{\mat{P}}
+\def\matQ{\mat{Q}}
+\def\matR{\mat{R}}
+\def\matL{\mat{L}}
+
+\def\matS{\mat{S}}
+\def\matT{\mat{T}}
+\def\matU{\mat{U}}
+\def\matV{\mat{V}}
+\def\matW{\mat{W}}
+\def\matX{\mat{X}}
+\def\matY{\mat{Y}}
+\def\matZ{\mat{Z}}
+\def\matSig{\mat{\Sigma}}
+\def\matOmega{\mat{\Omega}}
+\def\matGam{\mat{\Gamma}}
+\def\matTh{\mat{\Theta}}
+
+\newcommand{\matPi}{\mat{\Pi}}
+\newcommand{\matPsi}{\mat{\Psi}}
+\newcommand{\matPhi}{\mat{\Phi}}
+\def\w{{\mathbf{w}}}
+\def\ein{{\cl E_{\mathrm{in}}}}
+\def\eout{{\cl E}}
+
+
+
+\def\vecx{\vct{x}}
+\def\vecb{\vct{b}}
+\def\vecu{\vct{u}}
+\def\vecy{\vct{y}}
+\def\vecz{\vct{z}}
+\def\veco{\vct{o}}
+\def\vecw{\vct{w}}
+\def\vecv{\vct{v}}
+\def\vecp{\vct{p}}
+
+
+
+%% CAUTION OVERRIDE NOTATION
+% Over-ride notation
+\def\b{{\mathbf b}}
+
+
+\newcommand{\bc}{{\b_{\mathcal{R}(\matA)^\bot } }}
+\newcommand{\br}{{\b_{\mathcal{R}(\matA) } }}
+
+% Least squares solution of Ax = b
+\newcommand{\xls}{\x_{\textrm{\tiny LS}}}
+\newcommand{\xopt}{\x_{\textrm{\tiny opt}}}
+
+\newcommand{\yls}{\y_{\textrm{\tiny LS}}}
+\newcommand{\yopt}{\y_{\textrm{\tiny opt}}}
+
+% For rows, columns and entries of a matrix A
+\newcommand{\ar}[1]{ \matA^{(#1)}}
+\newcommand{\ac}[1]{ \matA_{(#1)}}
+\newcommand{\Ae}[1]{ \mat{a}_{#1}}
+
+% For rows, columns and entries of a matrix B
+\newcommand{\Br}[1]{ \matB^{(#1)}}
+\newcommand{\Bc}[1]{ \matB_{(#1)}}
+\newcommand{\Be}[1]{ \matB_{#1}}
+
+
+% For rows and columns and entries of a matrix L
+\newcommand{\Lr}[1]{ \matL^{(#1)}}
+\newcommand{\Lc}[1]{ \matL_{(#1)}}
+\newcommand{\Le}[1]{ \matL_{#1}}
+
+% Normalized Laplacian
+\newcommand{\Ln}{\matL_{\textrm{\tiny norm}}}
+\newcommand{\Lnr}[1]{ \matL_{\textrm{\tiny norm}}^{(#1)}}
+\newcommand{\Lnc}[1]{ \matL_{\textrm{\tiny norm}_{(#1)}}}
+\newcommand{\Lne}[1]{ \matL_{\textrm{\tiny norm}_{#1}} }
+
+
+
+% For rows, columns and entries of a matrix Q
+\newcommand{\qr}[1]{ \matQ^{(#1)}}
+\newcommand{\qc}[1]{ \matQ_{(#1)}}
+
+% For rows, columns and entries of a matrix tilde Q
+\newcommand{\tqr}[1]{ \widetilde{\matQ}^{(#1)}}
+\newcommand{\tqc}[1]{ \widetilde{\matQ}_{(#1)}}
+
+
+
+
+
+\newcommand{\argmin}{\operatorname*{arg\; min}}
+\newcommand{\argmax}{\operatorname*{arg\; max}}
+
+% Cayley Graph of a group G and subset S.
+\newcommand{\Cay}[2]{\ensuremath{\operatorname{Cay}\left(#1; #2\right)}}
+
+
+\newcommand{\Sym}{\mathcal{S}}
+
+
+\newcommand{\myMat}[4]{\left[\begin{array}[c]{ll}
+#1 & #2 \\
+#3 & #4
+\end{array}
+\right]}

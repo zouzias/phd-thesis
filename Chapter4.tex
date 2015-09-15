@@ -1,0 +1,453 @@
+\chapter{Graph Algorithms}\label{chap:graph}
+In the present chapter\footnote{Both sections~\ref{sec:AR_graphs} and~\ref{sec::graph_sparsifiers} appeared in~\cite{ICALP12}. A preliminary version of Section~\ref{sec:gossip} appeared in~\cite{CDC12} (joint work with Nick Freris).}, we discuss applications of the tools analyzed in the previous chapters to graph theoretic problems. More precisely, we discuss three problems: (i) the construction of expanding Cayley graphs, (ii) an efficient deterministic algorithm for graph sparsification, and (iii) randomized gossip algorithms for solving Laplacian systems.
+%A common theme underlying all the results here is that the corresponding graph theoretic problems are reformulated to an equivalent linear algebraic question that is amenable to be analyzed by the tools developed in the previous chapters.
+%
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\vspace*{-3.0ex}
+\section{Alon-Roichman Expanding Cayley Graphs}\label{sec:AR_graphs}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The Alon-Roichman theorem asserts that Cayley graphs obtained by choosing a logarithmic number of group elements independently and uniformly at random are expanders~\cite{expander:AlonRoichman:orig}. The original proof of Alon and Roichman is based on Wigner's trace method, whereas recent proofs rely on matrix-valued deviation bounds~\cite{expander:AlonRoichman:RusLan}. Wigderson and Xiao's derandomization of the matrix Chernoff bound implies a deterministic $\OO(n^4 \log n )$ time algorithm for constructing Alon-Roichman graphs. Independently, Arora and Kale generalized the multiplicative weights update (MWU) method to the matrix-valued setting and, among other interesting implications, they improved the running time to $\OO(n^3\polylog{n})$~\cite{phdthesis:Kale:2008}. Here we further improve the running time to $\OO(n^2 \log^3 n)$ by exploiting the group structure of the problem. In addition, our algorithm is combinatorial in the sense that it only requires counting the number of all closed (even) paths of size at most $\OO(\log n)$ in Cayley graphs. All previous algorithms involve numerical matrix computations such as eigenvalue decompositions and matrix exponentiation.
+%
+
+%
+We start by describing expander graphs. Given a connected undirected $d$-regular graph $H=(V,E)$ on $n$ vertices, let $\matA$ be its adjacency matrix, i.e., $\matA_{ij}=w_{ij}$ where $w_{ij}$ is the number of edges between vertices $i$ and $j$. Moreover, let $\widehat{\matA}:=\frac1{d}\matA$ be its normalized adjacency matrix. We allow self-loops and multiple edges. Let $\lambda_1(\widehat{\matA}),\ldots ,\lambda_n(\widehat{\matA})$ be its eigenvalues in decreasing order. We have that $\lambda_1(\widehat{\matA})=1$ with corresponding eigenvector $\mathbf{1}/\sqrt{n}$, where $\mathbf{1}$ is the all-one vector. The graph $H$ is called a \emph{spectral expander} if $\lambda(\widehat{\matA}):=\max_{2\leq j}\{ |\lambda_j(\widehat{\matA})|\}\leq \eps$ for some positive constant $\eps<1$.
+%
+
+%
+Denote by $m_k=m_k(H):= \trace{\matA^k}$. By definition, $m_k$ is equal to the number of self-returning walks of length $k$ of the graph $H$. A graph-spectrum-based invariant, proposed by Estrada is defined as $EE(\matA) := \trace{\expm{\matA}}$~\cite{estrada}, which also equals to $\sum_{k=0}^{\infty} m_k/k!$. For $\theta>0$, we define the \emph{even $\theta$-Estrada index} by $EE_{\text{even}}(\matA,\theta) := \sum_{k=0}^{\infty}  m_{2k}(\theta \matA)/(2k)!$.
+%
+
+%
+Now let $G$ be any finite group of order $n$ with identity element $\mathtt{id}$. Let $S$ be a multi-set of elements of $G$, we denote by $S\sqcup S^{-1}$ the symmetric closure of $S$, namely the number of occurrences of $s$ and $s^{-1}$ in $S\sqcup S^{-1}$ equals the number of occurrences of $s\in S$. Let $R$ be the right regular representation\footnote{In other words, represent each group algebra element with a permutation matrix of size $n$ that preserves the group structure. This is always possible due to Cayley's theorem.}, i.e., $(R(g_1)\phi)(g_2) = \phi(g_1 g_2)$ for every $\phi : G \to \reals$ and $g_1,g_2\in G$. The Cayley graph $\Cay{G}{S}$ on a group $G$ with respect to the mutli-set $S\subset G$ is the graph whose vertex set is $G$, and where $g_1$ and $g_2$ are connected by an edge if there exists $s\in S$ such that $g_2 = g_1 s$ (allowing multiple edges for multiple elements in $S$). In this section we prove the correctness of the following greedy algorithm for constructing expanding Cayley graphs.
+%
+%
+\begin{theorem}\label{thm:AR_graphs}
+Given the multiplication table of a finite group $G$ of size $n$ and $0<\eps<1$, Algorithm~\ref{alg:estradaAR} outputs a (symmetric) multi-set $S\subset G$ of size $\OO(\log n /\eps^2)$ such that $\lambda (\Cay{G}{S}) \leq \eps$ in $\OO(n^2\log^3 n /\eps^5)$ time. Moreover, the algorithm performs only group algebra operations that correspond to counting closed paths in Cayley graphs.
+\end{theorem}
+\begin{remark}
+To the best of our knowledge, the above theorem improves the running time of all previously known deterministic constructions of Alon-Roichman Cayley graphs~\cite{arora:fast_SDP,chernoff:matrix_valued:derand:WX08,phdthesis:Kale:2008}, see also~\cite{cayley:latin12} for an alternative polynomial time construction. Moreover, notice that the running time of the above algorithm is optimal up-to poly-logarithmic factors since the size of the multiplication table of a finite group of size $n$ is $\OO(n^2)$.
+\end{remark}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\vspace*{-3.5ex}
+\begin{algorithm}{}
+	\caption{Expander Cayley Graph via even Estrada Index Minimization}\label{alg:estradaAR}
+\begin{algorithmic}[1]
+\Procedure{GreedyEstradaMin}{$G$, $\eps$}\Comment{Multiplication table of $G$, $0<\eps <1$}
+\State Set $S^{(0)}=\emptyset$ and $t=\OO(\log n /\eps^2)$
+\For {$i=1,\ldots t$ }
+	\State Let $g_{*}\in G$ that (approximately) min. the even $\eps/ 2$-Estrada index of $\Cay{G}{S^{(i-1)}\cup g \cup g^{-1}}$ over all $g\in G $  \Comment{Use Lemma~\ref{lem:fastEstrada:Cayley}}
+	\State Set $S^{(i)} = S^{(i-1)} \cup g_{*} \cup g_{*}^{-1}$
+\EndFor
+\State \textbf{Output:} A multi-set $S:=S^{(t)}$ of size $2t$ such that $\lambda(\Cay{G}{S}) \leq \eps$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%\vspace*{-4.0ex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+Let $\widehat{\matA}$ be the normalized adjacency matrix of $\Cay{G}{S\sqcup S^{-1}}$ for some $S\subset G$. It is not hard to see that $ \widehat{\matA} = \frac1{2|S|} \sum_{s\in S}{ (R(s) + R(s^{-1}))}$. We want to bound $\lambda (\matA)$. Notice that $\lambda(\matA)=\norm{(\Id - \J/n) \matA}$. Since we want to analyze the second-largest eigenvalue (in absolute value), we consider $(\Id - \J/n)\matA = \frac1{|S|} \sum_{s\in S}{ (R(s) + R(s^{-1})) /2} - \J/n.$
+Based on the above calculation, we define our matrix-valued function as
+\begin{equation}\label{eq:AR:samplesnew}
+f(g) := (R(g) + R(g^{-1})) / 2 - \J /n
+\end{equation}
+for every $g\in G$. The following lemma connects the potential function that is used in Theorem~\ref{thm:hypercosine:main} and the even Estrada index.
+%
+\begin{lemma}\label{lem:cosh_Estrada}
+Let $S\subset G $ and $\matA$ be the adjacency matrix of $\Cay{G}{S\sqcup S^{-1}}$. For any $\theta>0$, $\trace{ \coshm{ \theta \sum_{s\in S} f(s) } } = EE_{even} (\matA,\theta/2)  + 1 - \cosh(\theta |S|).$
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:cosh_Estrada})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For notational convenience, set $\matP:= \Id_n - \J_n/n$ and $\matB := \frac{\theta}{2} \sum_{s\in S} (R(s) + R(s)^{-1})  $. Since $\J R(g) = R(g) \J = \J$, we have that $\trace{ \coshm{ \theta \sum_{s\in S} f(s) } } = \trace{ \coshm{ \matP \matB }}$. Now using Lemma~\ref{lem:coshm_with_proj}, it follows $\trace{ \coshm{ \matP \matB }} = \trace{\matP \coshm{\matB} + \Id - \matP} = \trace{\coshm{\matB}} + \trace{-\frac{\J}{n} \coshm{\matB} + \Id - \matP}$. Notice that $\J/n$ is a projector matrix, hence applying Lemmata~\ref{lem:expm:outerprod} and \ref{lem:coshm_with_proj} we get that
+%
+\[\trace{-\frac{\J}{n} \coshm{\matB} + \Id - \matP} = \trace{-\coshm{\J/n \matB} + \matP +\Id - \matP} = 1 - \cosh(\theta |S|).\]
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The following lemma indicates that it is possible to efficiently compute the (even) Estrada index for Cayley graphs with small generating set.
+\begin{lemma}\label{lem:fastEstrada:Cayley}
+	Let $S\subset G $, $\theta,\delta >0$, and $\matA$ be the adjacency matrix of $\Cay{G}{S}$. There is an algorithm that, given $S$, computes an additive $\delta$ approximation to $EE(\theta \matA)$ or $EE_{\text{even}}(\matA,\theta)$ in $\OO(n|S| \max\{ \log (n/\delta) , 2\e^2 |S| \theta \})$ time.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:fastEstrada:Cayley})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We will prove the Lemma for $EE(\matA,\theta)$, the other case is similar. Let $h:=\theta \sum_{s\in S} s$ be a group algebra element of $G$, i.e, $h\in \reals [G]$. Define $\expm{h} := \mathtt{id} + \sum_{k=1}^{\infty} \frac{h^{\star k}}{k!}$ and $T_l(h):= \mathtt{id} + \sum_{k=1}^{l} \frac{h^{\star k}}{k!}$ (where $h^{\star k}$ is the $k$-folded convolution/multiplication over $\reals [G]$) the exponential operator and its $l$ truncated Taylor series, respectively. Notice that $\theta \matA=\theta \sum_{s\in S} R(s) = R(h) $, so $EE(\matA,\theta) = \trace{\expm{R(h)}}= \trace{R(\expm{h})}$. We will show that the quantity $\trace{R(T_l(h) )}$ is a $\delta$ approximation for $EE(\matA,\theta)$ when $l\geq  \max\{ \log (n/\delta) , 2\e^2 |S| \theta\}$.
+
+Compute the sum of $T_l(h)$ by summing each term one by one and keeping track of all the coefficients of the group algebra elements. The main observation is that at each step there are at most $n$ such coefficients since we are working over $\reals [G]$. For $k > 1$, compute the $k$-th term of the sum by $(\sum_{s\in S} c_s s)^k /k! = (\sum_{s\in S} c_s s)^{k - 1 }/(k - 1 )! \cdot \sum_{s\in S} (c_s/k) s.$
+	Assume that we have computed the first term of the above product, which is some group algebra element denote it by $\sum_{g\in G} \beta_g g$ for some $\beta_g\in\reals$. Hence, at the next iteration, we have to compute the product/convolution of $\sum_{g\in G} \beta_g g$ with $\theta /k \sum_{s\in S} s$, which can be done in  $\OO( n |S|)$ time. Since the sum has $l$ terms, in total we require $\OO(n|S| l)$ operations. Now, we show that it is a $\delta$ approximation. We need the following fact (see~\cite[Theorem~$10.1$,~p.~$234$]{book:Higham:Matrix_fcn})
+\begin{fact}\label{fact:expm:taylor_exp}
+For any $\matB\in \reals^{n\times n}$, let $T_{l}(B) := \sum_{k=0}^{l} \frac{\matB^k}{k!}$. Then, $ \norm{ \expm{\matB} - T_{l}(\matB) } \leq \frac{\norm{\matB}^{l+1}}{(l+1)!} \e^{\norm{\matB}}.$
+\end{fact}
+%
+Notice that $ \norm{\theta \matA} = \norm{\sum_{s\in S}\theta R(s)} \leq \theta |S|$ by triangle inequality and the fact that $\norm{R(g)}=1$ for any $g\in G$. Applying Fact~\ref{fact:expm:taylor_exp} on $\theta \matA$ we get that
+	\begin{align*}
+		\norm{\expm{\theta \matA} - T_l(\theta \matA)}	& \leq  \frac{(\theta |S|)^{l+1}}{(l+1)!}\e^{\theta |S|}\ \leq\ \left(\frac{ \e\theta |S|}{l+1}\right)^{l+1} \e^{\theta |S|} \\
+									&   =  \left(\frac{ \e^{1+ (\theta |S|)/(l+1)}\theta |S|}{l+1}\right)^{l+1}  \leq \frac1{2^{l+1}} \leq \frac{\delta}{n}.
+	\end{align*}
+	where we used the inequality $(l+1)! \geq  (\frac{l+1}{e})^{l+1}$ and the assumption that $l\geq \max\{ \log (n/\delta) , 2 \e^2 \theta |S|\}$.
+\end{proof}
+%
+
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\begin{proof}(of Theorem~\ref{thm:AR_graphs})
+By Lemma~\ref{lem:cosh_Estrada}, minimizing the even $\eps/2$-Estrada index in the $i$-th iteration is equivalent to minimizing $\trace{ \coshm{ \theta \sum_{s\in S^{(i-1)}} f(s) +\theta f(g) } }$ over all $g\in G$ with $\theta = \eps$. Notice that $f(g)\in \Sym^{n\times n}$ for $g\in G$, $\EE_{g\in_R{G}}{f(g)} = \zeromtx_n$ since $\sum_{g\in G}R(g) = \J$. It is easy to see that $\norm{f(g)} \leq 2$ and moreover a calculation implies that $\norm{\EE_{g\in_R{G}}{f(g)^2}} \leq 2$ as well. Theorem~\ref{thm:hypercosine:main} implies that we get a multi-set $S$ of size $t$ such that $\lambda (\Cay{G}{ S\sqcup S^{-1}})=\norm{\frac1{|S|} \sum_{s\in S} f(s) }  \leq \eps$. The moreover part follows from Lemma~\ref{lem:fastEstrada:Cayley} with $\delta = \frac{\e^{\eps^2}}{n^c}$ for a sufficient large constant $c>0$. Indeed, in total we incur (following the proof of Theorem~\ref{thm:hypercosine:main}) at most an additive $\ln( \delta n \e^{\eps^2 t}) / \eps$ error which is bounded by $\eps$.
+\end{proof}
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Deterministic Graph Sparsification}\label{sec::graph_sparsifiers}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The second problem that we study is the graph sparsification problem. This problem poses the question whether any dense graph can be approximated by a sparse graph under different notions of approximation. Given any undirected graph, the most well-studied notions of approximation by a sparse graph include approximating, (i) \emph{all} pairwise distances up to an additive error~\cite{graph:spanners:PelegS89}, (ii) every cut to an arbitrarily small multiplicative error~\cite{graph:sparsifier:BenczurK96} and (iii) every eigenvalue of the difference of their Laplacian matrices to an arbitrarily small relative error~\cite{graph:sparsifier:ICM2010}; the resulting graphs are usually called \emph{graph spanners}, \emph{cut sparsifiers} and \emph{spectral sparsifiers}, respectively. Given that the notion of spectral sparsification is stronger than cut sparsification, we focus on spectral sparsifiers. An efficient randomized algorithm to construct an $(1+\eps)$-spectral sparsifier with $\OO(n\log n /\eps^2)$ edges was given in~\cite{graph:sparsifiers:eff_resistance}. Furthermore, an $(1+\eps)$-spectral sparsifier with $\OO(n/\eps^2)$ edges can be computed in $\OO(mn^3/\eps^2)$ deterministic time~\cite{graph:sparsifiers:twice_ram}. The latter result is a direct corollary of the spectral sparsification of positive semi-definite (psd) matrices problem as defined in~\cite{phdthesis:Srivastava:2010}; see also~\cite{graph:sparsification:Naor} for more applications. For additional references, see~\cite{graph:sparse:Harvey}. Here we present an efficient deterministic spectral graph sparsification algorithm for the case of dense graphs.
+%
+
+%
+Let us formalize the notion of cut and spectral sparsification. Let $G=(V,E,w_e)$ be a connected weighted undirected graph with $n$ vertices, $m$ edges and edge weights $w_e\geq 0$. Spectral sparsification was inspired by the notion of cut\footnote{Let $S\subseteq V$. A cut, denoted by $(S,\bar{S})$, is a partition of the vertices of a graph into two disjoint subsets $S$ and $\bar{S}$. The cut-set of the cut is the set of edges whose end points are in different subsets of the partition. The weight of a cut equals to the sum of the weights of all distinct edges contained in the cut-set.} sparsification introduced by Bencz\'{u}r and Karger~\cite{graph:sparsifier:BenczurK96} to accelerate cut algorithms whose running time depends on the number of edges. They designed algorithms that, given $G$ and a parameter $\eps>0$, output a weighted subgraph $\widetilde{G}=(V,\widetilde{E},\widetilde{w}_e)$ with $|\widetilde{E}|=\OO(n\log n /\eps^2)$ such that
+\begin{equation}\label{cut_sparsifier:cond}
+\forall S \subseteq V, \quad (1-\eps)\sum_{ (S,\bar{S}) \ni e\in{E}  } w_e \leq \sum_{(S,\bar{S}) \ni e\in{\widetilde{E}} } \widetilde{w}_e \leq (1+\eps)\sum_{(S,\bar{S}) \ni e\in{E} } w_e.
+\end{equation}
+%
+
+%
+We call such a graph $\widetilde{G}$, an $(1+\eps)$-\emph{cut sparsifier} of $G$. Let $\matL$ and $\widetilde{\matL}$ be the Laplacian matrices of $G$ and $\widetilde{G}$, respectively. Condition~\eqref{cut_sparsifier:cond} can be expressed using the language of Laplacians as follows
+%
+\begin{equation}\label{eqn:graph_sparse:comb}
+(1-\eps) \x^\top \matL \x \ \leq\ \x^\top \widetilde{\matL} \x \leq (1+\eps) \x^\top \matL \x, \quad \text{for all }\x\in{\{0,1\}^n}.
+\end{equation}
+%
+Spielman and Teng~\cite{graph:sparsifiers:SpielmanT08} devised stronger sparsifiers that extend~\eqref{eqn:graph_sparse:comb} to all $\vct{x}\in\reals^n$, but required $\OO(n\log^c n)$ edges for a large constant $c$. Quite recently, Spielman and Srivastava~\cite{graph:sparsifiers:eff_resistance} constructed sparsifiers with $\OO(n\log n /\eps^2)$ that satisfy
+%
+\begin{equation}\label{eqn:graph_sparse:forall}
+(1-\eps) \x^\top \matL \x \ \leq\ \x^\top \widetilde{\matL} \x \leq (1+\eps) \x^\top \matL \x, \quad \text{for all }\x\in\reals^n.
+\end{equation}
+%
+We say that $\widetilde{G}$ is an $(1+\eps)$-\emph{spectral sparsifier} of $G$, if it satisfies Ineq.~\eqref{eqn:graph_sparse:forall}.
+%
+
+%
+The latter result of Spielman and Srivastava~\cite{graph:sparsifiers:eff_resistance} implicitly\footnote{To be precise, they used Vershynin and Rudelson's matrix Chernoff bound~\cite{lowrank:rankone:VR}, however the same bound follows via the matrix Bernstein bound as was noticed in~\cite{matrix:hypercosine_zouzias}.} used the matrix Bernstein inequality (Theorem~\ref{thm:matrix_valued:Bernstein}). In particular, they proved a stronger statement: they showed that there exists a probability distribution over the edges of any graph $G$, so that sampling $\OO(n\log n /\eps^2)$ edges with replacement will result to a sub-graph of $G$ that satisfies Ineq.~\eqref{eqn:graph_sparse:forall} with high probability. They also gave a nearly-linear time algorithm for constructing such spectral sparsifiers. Furthermore, an $(1+\eps)$-spectral sparsifier with $\OO(n/\eps^2)$ edges can be computed in $\OO(mn^3/\eps^2)$ deterministic time~\cite{graph:sparsifiers:twice_ram}. In a recent paper, the author obtained a faster deterministic algorithm than~\cite{graph:sparsifiers:twice_ram} for the case of dense graphs and constant $\eps$. This was achieved by combining the matrix hyperbolic cosine algorithm (Algorithm~\ref{alg:matrix:hyperbolic}) together with tools from numerical linear algebra such as the Fast Multipole Method and fast solvers for special type of eigensystems.
+%
+%
+\begin{theorem}
+Given a weighted graph $G=(V,E)$ on $n$ vertices, $\Omega(n^2)$ edges with positive weights and $0< \eps <1$, there is a deterministic algorithm that returns an $(1+\eps)$-spectral sparsifier with $\OO(n/ \eps^2)$ edges in $\widetilde{\OO}(n^4 \log n /\eps^2$ $ \max\{ \log^2 n, 1/\eps^2 \})$ time.
+\end{theorem}
+%
+The proof is a direct corollary of the fast deterministic isotropic sparsification algorithm, Algorithm~\ref{alg:fast:isotrop}. The reduction from graph sparsification to sparsification of vectors in isotropic position was first observed in~\cite{graph:sparsifiers:twice_ram,phdthesis:Srivastava:2010}.
+%
+\begin{proof}
+
+Given the weighted Laplacian matrix $\matL = \sum_{(i,j)\in E} w_{(i,j)} \b_{(i,j)} \otimes \b_{(i,j)}$ where the $i$-th coordinate of $\b_{(i,j)}$ equals to $1$, the $j$-th equals to $-1$, and zero otherwise.  Theorem~\ref{thm:sparsification:here} with input the vectors $\{\sqrt{w_{e}} \b_e\}_{e\in E}$, outputs a set of positive weights $\{s_e\}_{e\in{E}}$ (at most $\OO(n/\eps^2)$ of them are positive) in $\widetilde{\OO}(mn^2 \log^3 n  /\eps^2 + n^4 \log n /\eps^4)$ time so that
+\[ (1-\eps)\matL \preceq \sum_{e\in E} s_e w_e \b_e \otimes \b_e \preceq (1+\eps) \matL.\]
+It follows that the induced subgraph by the non-zero weights $\{s_e w_e\}_{e\in{E}}$ is an $(1+\eps)$-spectral sparsifier of $G$ having at most $\OO(n/ \eps^2)$ edges.
+\end{proof}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Randomized Gossip Algorithms for Solving Laplacian Systems}\label{sec:gossip}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We present distributed algorithms for solving Laplacian systems under the gossip model (a.k.a. asynchronous time model)~\cite{gossip:Boyd}, for earlier references see~\cite{gossip:TBA86,book:BT89}. The proposed algorithms are based on the randomized extended Kaczmarz algorithm that has been discussed in Section~\ref{sec:REK}. To the best of our knowledge, the connection between the gossip model and Kaczmarz-like algorithms was first observed in~\cite{CDC12} and will be discussed in Section~\ref{sec:LaplacianGossip}. In Section~\ref{sec:improvedGossip}, we present an improved gossip algorithm by exploiting the special structure of Laplacian matrices in the case of solvable Laplacian systems.
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The Model of Computation: Gossip algorithms}\label{sec:model}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The gossip model of computation is also known in the literature as \emph{asynchronous time model}~\cite{gossip:TBA86,book:BT89}. Gossip algorithms can be categorized as being randomized or deterministic. Here, we focus on the randomized gossip model (from now on we will drop the adjective randomized). The gossip model is, roughly speaking, defined as the classical asynchronous model of computation enriched with the additional assumption that each node can activate itself (randomly) in a fixed (pre-decided) rate. The model implicitly assumes that the computational power of all nodes is comparable with each other.
+%
+
+%
+More formally, the gossip model is defined as follows: Each node $i$ has a clock which ticks at the times of a $\gamma_i$ Poisson process\footnote{See~\cite{book:Fellerv1} for more about Poisson processes.}. So, the inter-tick times of each node are rate $\gamma_i$ exponential random variables, independent over all the nodes and over time. Equivalently, using properties of the Poisson distribution\footnote{Let $W_1,\ldots ,W_n$ be $n$ independent exponential random variables with rates $\gamma_1,\ldots, \gamma_n$, respectively. Let $W_{\text{min}}$ be the minimum of $W_1,\ldots ,W_n$. Then $W_{\text{min}}$ is an exponential random variable of rate $\sum_{i=1}^{n} \gamma_i$.}, this corresponds to a single (global) clock ticking with a rate $\sum_{i\in V} \gamma_i$ Poisson time process at times $Z_0, Z_1, Z_2,\ldots$, where $\{Z_{k} - Z_{k-1}\}$ are i.i.d. exponentials of rate $\gamma_{I_k}$ assuming that node $I_k\in V$ is selected at the $k$-th tick. It is easy to see that $I_k$ are i.i.d. random variables distributed over $V$ with probability mass $\{\gamma_i\}_{i\in V}$.
+
+A Chernoff bound type of argument can be used to relate the number of clock ticks to absolute time (time units) which allows us to discuss the results in terms of clock ticks instead of absolute time, see~\cite{gossip:Boyd} for the details. Therefore, the algorithmic design problem under the gossip model is to analyze distributed algorithms that require the minimum possible number of clock ticks in expectation given a particular problem.
+%
+
+%
+In some sense the gossip model lies in the middle of the synchronous model and asynchronous model of computation. Recall that in the asynchronous model of computation, roughly speaking, the assumption is that each node performs a predefined computation infinitely often. Although such an assumption is very general, it is insufficient to hope for providing bounds on the rate of convergence of any asynchronous algorithm. As we will see shortly in the section, the asynchronous time model overcomes this limitation.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Related Work}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+The earliest reference in gossip or epidemic algorithms is the work of Demers et al.~\cite{gossip:Demers} in which they first coined the term ``gossip'', see also~\cite{gossip:Pittel}. The authors in~\cite{gossip:Demers} proposed gossip algorithms for maintaining up-to-date replicates over a network of databases.
+
+Nevertheless, one of the most studied problems in distributed algorithms is the average consensus problem, i.e., initially each node receives a value and each node should compute the average over all the node values. The analysis of classical (synchronous and asynchronous) distributed algorithms for the averaging problem can be traced back to the work of Tsitsiklis~\cite{gossip:TBA86}. The work of Karp~et~al.~\cite{gossip:Karp} presented a general lower bound for the averaging problem for any graph and any gossip algorithm in the synchronous setting. Gossip-based algorithms for aggregating information where the underlying graph is the complete graph was studied in~\cite{gossip:Kempe}, see also~\cite{gossip:KempeImprov} for improvements. The analysis of randomized gossip-based averaging algorithms for an arbitrarily network topology was studied in~\cite{gossip:Boyd}. Although the results of~\cite{gossip:Boyd} are stated for computing the average function, their theoretical framework can be easily extended to the computation of other functions as well including maximum, minimum or product functions.
+
+Solving Laplacian systems in a distributed manner is a fundamental computational primitive since several problems, such as clock synchronization, can be formulated as the solution of a Laplacian system~\cite{smoothing,karp,CDC12}. Laplacian solvers have been successfully analyzed in both the synchronous and asynchronous model of computation~\cite{gossip:TBA86}. However, to the best of our knowledge, solving Laplacian systems under the gossip model of computation has not been well-studied. That said, the techniques of~\cite{gossip:Boyd} have been applied in~\cite{gossip:Bolognani,gossip:IPSN05_Boyd,gossip:IPSN06_LS} to provide a naive solution to the problem, albeit with many drawbacks that we list in the following paragraph. For additional references on the least squares estimation problem, see the survey paper of Dimakis et al.~\cite[\S~IV]{gossip:Dimakis}.
+
+The approach of~\cite{gossip:Bolognani,gossip:IPSN05_Boyd,gossip:IPSN06_LS} for solving Laplacian systems has several limitations. The underlying idea behind these results is to apply average consensus algorithms as the main building block towards solving the least-squares estimation problem. The main approach is as follows: in the first (distributed) step, each node applies a consensus-based algorithm to approximate all the entries of the normal equations matrix of the least squares problem together with the corresponding right hand side vector of the normal equation. In the next step, each node has all the required information to solve the least squares estimation problem individually. The main drawback of this approach is that each node has to compute (in parallel) a quadratic number of instances of the averaging problem and moreover each node is required to solve a linear system. Such solution clearly does not scale to large networks because it requires the transmission of quadratic number of messages in terms of the number of parameters to be estimated and the computational requirements per node are prohibitively intense (i.e., solving a linear system).  The following theorem summarizes\footnote{We should mention that the approaches of~\cite{gossip:Bolognani,gossip:IPSN05_Boyd,gossip:IPSN06_LS} operate under a more general setting of time-varying network topologies requiring very weak conditions of connectivity~\cite{gossip:IPSN06_LS}.} the outcome of the approaches in~\cite[\S~IV-A]{gossip:IPSN05_Boyd},~\cite{gossip:IPSN06_LS}. and~\cite[Theorem~5]{gossip:Bolognani} (see the following section for notation).
+\begin{theorem}\cite[Theorem~5]{gossip:Bolognani}
+	Let $G=(V,E)$ be a connected network of $n$ nodes and assume that each node $i\in V$ gets as input a value $b_i$. There is a consensus-based algorithm so that: every node $i\in V$ asymptotically computes the i-th entry of the vector $\xls$, where $\xls$ is the minimum $\ell_2$-norm solution vector of the Laplacian system $\matL (G) \x = \b$.
+\end{theorem}
+All the above approaches are able to only provide convergence in the limit as the number of iterations goes to infinity. In contrast, the results of the present section provide bounds on the rate of convergence, see Corollary~\ref{cor:gossip}.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Preliminaries and Problem Definition}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The communication network is modeled by an undirected graph $G = (V,E)$. We let $n:=|V|$ be the number of agents and $m:=|E|$ be the number of communication links. For simplicity, communication is taken symmetric. Two neighboring nodes $i,j: (i,j)\in E$, can exchange packets to exchange information.
+%
+
+%
+Let us label the nodes as $1,\ldots, n$ and write the undirected edge $e=(i,j)$ with $i<j$.  Consider any unknown vector $\x \in \R^n$ of node variables, where variable $x_i$ corresponds to node $i$. The \emph{edge-vertex incidence} matrix of the graph $\matB\in \R^{m \times n}$ has entries:
+%
+\begin{equation}
+\matB_{ek} :=
+\left\{
+  \begin{array}{ll}
+    -1, & \hbox{if $k=i$;} \\
+    1, & \hbox{if $k=j$;} \\
+    0, & \hbox{otherwise}.
+  \end{array}
+\right.
+\end{equation}
+%
+Let $\matL$ be the unnormalized Laplacian matrix of $G$, i.e., $\matL=\matD - \matA$ where $\matA$ is the adjacency matrix of $G$ and $\matD$ is the diagonal matrix whose $(i,i)$-th entries is the degree of node $i$. It is a well-known fact that $\matL= \matB^\top \matB$. The goal of this section is to design distributed algorithms under the gossip model of computation that solve
+\[\matL \x = \b.\]
+We assume that every node $i\in V$ has access only to the values $b_i$ and $b_j $ for all $j$ that are adjacent to $i$. Since $\matL$ is singular the goal is to compute, in a distributed manner, the entries of the minimum $\ell_2$-norm least squares solution, $\xls = \pinv{\matL} \b$. More precisely, each node $i\in V$ has to compute (actually sufficiently approximate) the $i$-th coefficient of $\xls$.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Basics from graph theory}\label{sec:graph}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+For each $i\in V$, we define its \emph{neighborhood}, $N_i:= \{j\in V: (i,j)\in E\}$. The \emph{degree} of the node is $d_i:=|N_i|$, and we define $d_{\max}:=\max_i d_i$.  Let $\lambda_1 \leq \lambda_2 \leq \ldots \leq \lambda_n$ be the eigenvalues of $\matL$.  For a connected graph we have that $\lambda_1 = 0$,  and $0<\lambda \le d_{\max}$, for $i=2,\ldots,n$.  The second smallest eigenvalue of $\matL$ denoted by $\lambda_2(G)$, also called the \emph{Fiedler value} or \emph{algebraic connectivity} of $G$, can be lower-bounded via Cheeger's inequality~\cite{book:spectralGraph} as follows: define for each non-empty $S\subseteq V$, the \emph{volume} to be the sum of the degrees of the vertices in $S$: $\vol{S} := \sum_{i\in S} d_i$; furthermore, let $E(S,\bar{S})$ be the set of edges with one vertex in $S$ and the other one in $V\setminus \bar{S}$; finally, let $h_G(S):= \frac{|E(S,\bar{S})|}{\min\{\vol{S}, \vol{\bar{S}}\} }$. The \emph{Cheeger constant} of $G$ is defined as $h_G:= \min_{S\neq \emptyset} h_G(S)$. Then:
+\begin{equation}\label{eq:cheeger}
+\lambda_2(G) \geq \frac{h_G^2}{2d_{\max}}.
+\end{equation}
+We will show that the rate of convergence of the presented random gossip algorithms depends on $\lambda_2(G)$. From now on we implicitly assume that that input graph is connected.
+
+Let $\matB = \matU \matSig \matV^\top$ be the (truncated) singular value decomposition of $\matB$, i.e., $\matU$ and $\matV$ are $m\times (n-1)$ and $n\times (n-1)$ matrices with orthonormal columns respectively, and $\matSig$ is a diagonal matrix of size $(n-1)$ with positive elements. Since $\matL = \matB^\top \matB$, it holds that $\matL = \matV\matSig^2 \matV^\top$.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Basics from Linear Algebra}\label{sec:linAlgebra}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+We summarize an observation regarding the structure of the minimum $\ell_2$-norm least-squares solution of Laplacian systems.
+\begin{lemma}\label{lem:charLS}
+	Let $\xls$ be the minimum $\ell_2$-norm least squares solution of $\matL \x = \b$. Let $\xls'$ be the returned vector after the following two-step procedure:
+	\begin{enumerate}[(a)]
+		\item
+		Compute the minimum $\ell_2$-norm least squares solution of $\matB^\top \y = \b$, i.e., $\yls :=\pinv{(\matB^\top)} \b  $
+		\item
+		Compute and return the minimum $\ell_2$-norm least squares solution of $\matB \x = \yls$, i.e., $\xls' :=\pinv{\matB} \yls $
+	\end{enumerate}
+Then, $\xls'$ equals $\xls$.
+\end{lemma}
+\begin{proof}
+Notice that $\xls' = \pinv{\matB} \yls = \pinv{\matB} (\matB^\top)^{\dagger} \b = \matV \matSig^{-1}\matU^{\top} \matU \matSig^{-1}\matV^{\top} \b  = \matV \matSig^{-2} \matV^{\top} \b = \pinv{\matL}\b$ where we used that $\matB = \matU\matSig\matV^\top $, $\matU^{\top} \matU = \matI_m$ and $\matV \matSig^{-2} \matV^{\top} = \pinv{\matL}$.
+\end{proof}
+%
+%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Randomized Gossiping via Randomized Extended Kaczmarz}\label{sec:LaplacianGossip}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+We propose a randomized gossip algorithm that exponentially converges to the least-squares solution of the Laplacian system corresponding to the underlying communication graph. The proposed gossip algorithm is based on the randomized extended Kaczmarz method (Algorithm~\ref{alg:REK}) as explained in detail next.
+%
+
+%
+Consider a given column of $\matL$ with index $j\in [n]$. $\Lc{j}$ has $d_j + 1$ non-zero entries whose off-diagonal entries are equal to $-1$ and the diagonal equals to $d_j$, so $\norm{\Lc{j}}^2 = d_j^2 + d_j$. Moreover for any $\z\in\R^n$ we have $\ip{\z}{\Lc{j}} =  d_j z_j - \sum_{l\in N_j} z_{l}$. Step $6$ of Algorithm~\ref{alg:REK} is translated to
+%
+\[ \z^{(k+1)} \leftarrow \z^{(k)} + \frac{ z_j^{(k)} - \frac1{d_j}\sum_{l\in N_j} z^{(k)}_{l}}{d_j + 1} \Lc{j}.\]
+%
+In particular, if $j\in V$ is selected the only coordinates of $\z$ that are updated are $(z_{l})_{l\in N_i}$. This part of the algorithm is clearly distributed in the sense that a given iteration, only the one-hop neighbors of $i$ make updates of their local estimates based solely on exchanging their previous estimates.
+
+
+Similarly, consider a given row of $\matL$, say $i\in{[n]}$, then for any $\x\in\R^n$ we have
+$\ip{\x}{\Lr{i}} = d_i x_i - \sum_{l\in N_i} x_{l} $ as before. Step $7$ of Algorithm~\ref{alg:REK} is translated to
+%
+\[ \x^{(k+1)} \leftarrow \x^{(k)} + \frac{(b_{i}  - z_i^{(k)})/d_i -  x_i^{(k)} - \frac1{d_i}\sum_{l\in N_i} x_{i}^{(k)}}{d_i + 1} \Lr{i}.\]
+%
+%
+
+%
+Putting all the above observations together, we end up with Algorithm~\ref{alg:gossip}. This algorithm has exponential convergence in expectation as it follows from Theorem~\ref{thm:REK}, and its rate of convergence depends solely on the topology of the underlying communication network.
+%
+%
+\begin{algorithm}{}
+	\caption{Randomized Gossip Laplacian Solver}\label{alg:gossip}%RK applied to original noiseless equations
+\begin{algorithmic}[1]
+\Procedure{}{}
+\ForAll{nodes $i\in V$}\Comment{Initialization step}
+	\State Set $x^{(0)}_i = 0$ and detect neighbors $N_i$
+	\State Node $i$ obtains $b_{j}$ for all $j\in N_i$ (hypothesis)
+	\State Set $z^{(0)}_i = b_i$
+\EndFor
+\For {$k=0,1,2,\ldots $ (each clock tick)}
+	\State\label{rek:sampl} Pick a node $i_k\in V$ with probability proportional $d_{i_k}^2 + d_{i_k}$
+	\State Node $i_k$ collects $x_{j}$ and $z_{j}$ from all its neighbors $j\in N_i$
+	\State Node $i_k$ broadcasts: $\theta : =  z_{i_k}^{(k)} - \frac1{d_{i_k}}\sum_{l\in N_{i_k}} z_l^{(k)}$ and $\xi : =   (b_{i_k} - z_{i_k}^{(k)})/d_{i_k} + x_{i_k}^{(k)} - \frac1{d_{i_k}}\sum_{l\in N_{i_k}} x_l^{(k)}$
+	\State Node $i_k$ sets: $z^{(k+1)}_{i_k} \leftarrow  z^{(k)}_{i_k} + \frac{d_{i_k} \theta}{1  + d_{i_k} } $ and $x^{(k+1)}_{i_k} \leftarrow  x^{(k)}_{i_k} + \frac{d_{i_k} \xi }{1  + d_{i_k} } $
+	\State Every node $j\in N_{i_k}$ sets: $ z^{(k+1)}_{j} \leftarrow z^{(k)}_{j} - \frac{\theta }{ 1 + d_{i_k} } $ and $ x^{(k+1)}_{j} \leftarrow x^{(k)}_{j} - \frac{\xi}{ 1 + d_{i_k} } $
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%
+%
+%The above algorithm is a translation of the randomized Kacmzarz algorithm in the clock synchronization setting. Therefore, we are able to analysis its speed of convergence using Theorem~\ref{thm:RK:consistent}.
+\begin{corollary}[Convergence rate of Algorithm~\ref{alg:gossip}]\label{cor:gossip}
+The updates of estimates produced by Algorithm~\ref{alg:gossip} satisfy:
+%
+\[ \EE {\norm{\x^{(k)} - \xls}^2} \leq \left(1 - \frac{\lambda_2^2(G)}{2\sum_{i}d_i^2 + d_i}\right)^{\lfloor k/4 \rfloor } \left(\norm{\xls}^2 + 2\norm{\b}^2 / \lambda_2^2(G) \right).\]
+%
+In particular, for any $\eps>0$, if $k\geq  \frac{8 \sum_{i}d_i^2 + d_i}{\lambda_2^2(G)} \ln\left( \frac{\norm{\xls}^2 + 2 \norm{\b}^2 / \lambda_2^2(G)}{\eps^2}\right)$, then $\EE {\norm{\x^{(k)} - \xls}} \leq \eps$.
+\end{corollary}
+%
+%
+\begin{proof}
+The proof is based on the fact that the iterations of Algorithm~\ref{alg:gossip} are similar to the iterations of Algorithm~\ref{alg:REK} applied on $\matL$. First notice that $\matL$ is symmetric, so Step~\ref{rek:sampl} produces a sample that follows the correct distribution for both the rows and columns from $\matL$. The only difference between the iterations of Algorithm~\ref{alg:gossip} and Algorithm~\ref{alg:REK} is that only one sample is generated in Algorithm~\ref{alg:gossip} whereas Algorithm~\ref{alg:REK} two different samples; one for row sampling and the other for column sampling. However, $\matL$ is symmetric and the proof of Theorem~\ref{thm:REK} works through unchanged for Algorithm~\ref{alg:gossip} which uses a simple sample for both row and column sampling because $\matL$ is symmetric and by the linearity of expectation. Moreover, notice that $\frobnorm{\matL}^2 = \sum_{i\in V} (d_i^2 + d_i)$ and $\sigma^2_{\min}(\matL) = \lambda_2^2(G)$.
+\end{proof}
+
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Improved Randomized Gossiping for Laplacian Systems}\label{sec:improvedGossip}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Algorithm~\ref{alg:gossip} requires, roughly speaking, $\widetilde{\OO}( d_{\max} m / \lambda_2^2(G))$ number of rounds for convergence to a vector arbitrarily close to the least squares solution with high probability. Here we improve the above bound to $\OO( m / \lambda_2(G))$ iterations whenever $\matL \x = \b$ has a solution\footnote{The general setting can be achieved by utilizing the averaging algorithm~\cite{gossip:Boyd} on $\b$ and each node $i$ updates its right hand side coefficient to $b'_i:=b_i - \frac1{n}\sum_{i=1}^n{b_i}$. Notice that $\b'$ is in the range of $\matL$ and moreover, the minimum $\ell_2$-norm least-squares solution of $\matL \x = \b'$ equals to $\pinv{\matL} \b$.}. The main idea is based on the special decomposition of the normalized Laplacian matrix, i.e., $\matL= \matB^\top\matB $ and Lemma~\ref{lem:charLS}. That is, apply the procedure described in Lemma~\ref{lem:charLS} to solve the normalized Laplacian system. Assuming the notation of Lemma~\ref{lem:charLS}, observe that $\yls$ is in the column span of $\matB$, hence the linear system $\matB \x = \yls$ is consistent. The above lemma suggests that we can utilize the randomized Kaczmarz (RK) algorithm (Algorithm~\ref{alg:RK}) to compute an approximation to $\yls$, and then again invoke (in parallel) the randomized Kaczmarz algorithm to solve the linear system of Step $(b)$ of Lemma~\ref{lem:charLS}. The rationale behind this approach is based on the fact that we are solving two linear systems with coefficient matrix $\matB$ instead of $\matL=\matB^\top \matB$, so the condition number is now square-rooted compared to the original system $\matL$.
+
+The sparsity structure of $\matB$ implies that the randomized Kaczmarz solver applied to both $\matB$ and $\matB^\top$ is implementable under the gossip model of computation as in the previous section.
+%
+%
+\begin{theorem}\label{thm:improvedGossip}
+Fix $\eps>0$. For every\footnote{$\widetilde{\Omega}(\cdot)$ hides logarithmic factors. See Lemma~\ref{lem:7} for the exact bound.} $k= \widetilde{\Omega}(m /\lambda_2(G))$, the updates of estimates produced by Algorithm~\ref{alg:RGimproved} satisfy:
+%
+\[ \EE {\norm{\x^{(k)} - \xls}^2} \leq \eps^2.\]
+%
+\end{theorem}
+%
+%
+%
+\begin{algorithm}{}
+	\caption{Improved Randomized Gossip Laplacian Solver}\label{alg:RGimproved}
+\begin{algorithmic}[1]
+\Procedure{}{}
+\ForAll{nodes $i\in V$}\Comment{Initialization step}
+		\State Set $x^{(0)}_i = 0$ and detect neighbors $N_i$
+		\State Node $i$ obtains $b_{j}$ and sets $y^{(0)}_{(i,j)} = 0$
+		\State Each pair of adjacent nodes $(i,j)$ maintains a value of $y^{(k)}_{(i,j)}$
+\EndFor
+\For {$k=0,1,2,\ldots $ (each clock tick)}
+		\State \label{rk1:1}Pick a node $s_k\in{[n]}$ w.p. proportional to $d_{s_k}$
+		\State \label{rk2:1}Pick an edge $(i_k,j_k)$ uniformly from the edges adjacent to $s_k$ ($i_k$ or $j_k$ equals to $s_k$)
+		\State\label{rk1:2} Node $s_k$ collects $y_{(s_k,j)}^{(k)}$ for all $j\in{N_{s_k}}$ \& computes $\theta = (b_{s_k} - \sum_{j\in{N_{s_k}}}y^{(k)}_{(s_k,j)})/d_{s_k} $.
+		\Statex
+		\State\label{rk1:3} Node $s_k$ broadcasts $\theta$ and  $y_{(s_k,j)}^{(k+1)} = y_{(s_k,j)}^{(k)} + \theta$ for every $j\in{N_{s_k}}$
+		\State Comment: Steps~\ref{rk1:1},\ref{rk1:2} and~\ref{rk1:3} correspond to RK on $\matB^\top \y = \b$:
+		\[\y^{(k+1)}  =  \y^{(k)}  + \frac{b_{s_k} - \sum_{j\in{N_{s_k}}}y^{(k)}_{(s_k,j)}  }{d_{s_k}} \Bc{s_k}\]
+		\Statex
+		\State\label{rk2:2} Node $i_k$ and $j_k$: $x_{i_k}^{(k+1)} = x_{i_k}^{(k)} + (y^{(k)}_{(i_k,j_k)} + x^{(k)}_{i_k} - x^{(k)}_{j_k}) /2 $ and $x_{j_k}^{(k+1)} = x_{j_k}^{(k)} - (y^{(k)}_{(i_k,j_k)} + x^{(k)}_{i_k} - x^{(k)}_{j_k}) /2 $, resp.
+	\State Comment: Steps~\ref{rk2:1}and \ref{rk2:2} corresponds to applying RK on $\matB \x = \y^{(k)}$
+	\[\x^{(k+1)} = \x^{(k)}  + \frac{y^{(k)}_{(i_k,j_k)} - (x_{i_k}^{(k)} - x_{j_k}^{(k)})}{2} \Br{(i_k,j_k)}\]
+\EndFor
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%
+
+%
+We devote the rest of this section to prove Theorem~\ref{thm:improvedGossip}. The proof is based on the following three lemmas. Lemma~\ref{lem:5} indicates that the estimates of $\y^{(l)}$ converge exponentially to $\yls$ in expectation, since Steps~\ref{rk1:1},~\ref{rk1:2} and~\ref{rk1:3} perform updates of the randomized Kaczmarz algorithm on the system $\matB^\top \y = \b$. Lemma~\ref{lem:6} states that during the course of Algorithm~\ref{alg:RGimproved}, in expectation, the estimates $\x^{(k)}$ are within a ball of \emph{fixed} radius centered at $\xls$.
+
+The main difficulty on proving Theorem~\ref{thm:improvedGossip} is the fact that Steps~\ref{rk2:1} and~\ref{rk2:2} of Algorithm~\ref{alg:RGimproved} applies a single iteration of RK on the linear systems $\{\matB \x = \y^{(k)}\}_{k\in \N}$ that are being updated after each iteration. We bypass this obstacle by observing the following: for sufficiently large $k$, $\y^{(k)}$ is arbitrarily close to $\yls$ (Lemma~\ref{lem:5}) and in addition $\norm{\x^{(k)} - \xls }$ is bounded in expectation (Lemma~\ref{lem:6}).
+%
+
+%
+That is, after sufficiently many iterations, the current estimate $\x^{(k)}$ is within a bounded distance away from $\xls$. Moreover, Step $10$ of the algorithm is now applied on linear systems that, in expectation, are arbitrarily close to the linear system $\matB \x = \yls$, since $\matB \x = \y^{(k)} + \yls - \y^{(k)}$ and $\norm{\y^{(k)} - \yls}$ is arbitrarily small. Lemma~\ref{lem:7} formalized this discussion.
+\begin{lemma}\label{lem:5}
+Assuming the notation of Algorithm~\ref{alg:RGimproved}, for every $l>0$ it holds that
+\begin{equation}\label{ineq:stopTime2}
+	\EE \norm{\y^{(l)} - \yls}^2 \leq  \left(1- \frac1{\kappaFS(\matB)}\right)^{ l} \norm{\yls}^2.
+\end{equation}
+\end{lemma}
+\begin{lemma}\label{lem:6}
+Assuming the notation of Algorithm~\ref{alg:RGimproved}, for every $k>0$, it holds that
+\[\EE \norm{\x^{(k + 1)} - \xls}^2 \leq \left(1- \frac1{\kappaFS(\matB)}\right)^{k+1}\norm{\xls}^2 + \norm{\yls}^2 / \sigma_{\min}^2(\matB).\]
+\end{lemma}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:6})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Set $\alpha = 1 - 1/\kappaFS(\matB)$. We will show a uniform bound over all $k>0$ on $\EE \norm{\x^{(k)} - \pinv{\matB} \yls}$. The crucial point of the proof is to think of the evolution of the algorithm as an application of the randomized Kaczmarz algorithm applied on a noisy linear system. By definition of the algorithm, at the $k$-th iteration we update the estimate $\x^{(k)}$ to $\x^{(k+1)}$ by applying the randomized Kaczmarz update rule on $\matB \x = \y^{(k)}$. Now, we assume that the right hand side is ``noisy'', and the desired linear system is $\matB\x = \yls$, hence, applying the analysis of the noisy randomized Kaczmarz on the linear system $\matB \x = \y^{(k)}$ (set $\w$ in Theorem~3 to be $\w^{(k)}:=\y^{(k)} - \yls$) we get that
+\begin{align}
+		\EE_k \norm{\x^{(k + 1)} - \xls}^2 & \leq \alpha \norm{\x^{(k)} - \xls}^2 + \frac{\norm{\w^{(k)}}^2}{\frobnorm{\matB }^2}
+\end{align}
+Now averaging over the first $k$ steps of the algorithm and using linearity of expectation we get
+\[		\EE \norm{\x^{(k + 1)} - \xls}^2  \leq  \alpha \EE\norm{\x^{(k)} - \xls}^2 + \frac{\EE\norm{\w^{(k)}}^2}{\frobnorm{\matB }^2} \]
+Applying inductively the above reasoning on the right hand side, it follows that
+\begin{equation}\label{ineq:generic}
+\EE \norm{\x^{(k + 1)} - \xls}^2  \leq  \alpha^{k+1} \norm{\xls}^2 + \sum_{l=0}^{k}\alpha^l \frac{\EE\norm{\w^{(k-l)}}^2}{\frobnorm{\matB }^2}.
+\end{equation}
+Since $\alpha <1$, Lemma~\ref{lem:5} tells us that $\EE \norm{\w^{(l)}}^2 = \EE \norm{\y^{(l)} - \yls}^2 \leq  \norm{\yls}^2 $ for every $l>0$. We conclude that
+\[
+\EE \norm{\x^{(k + 1)} - \xls}^2  \leq  \alpha^{k+1}\norm{\xls}^2 + \frac{\norm{\yls}^2}{\frobnorm{\matB }^2}\sum_{l=0}^{\infty}\alpha^l.
+\]
+To conclude, observe that $\sum_{l=0}^{\infty}\alpha^l = \frobnorm{\matB}^2/\sigma_{\min}^2(\matB)$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+\begin{lemma}\label{lem:7}
+Fix any accuracy parameter $\eps>0$. If
+\[k\geq \kappaFS(\matB)\left(\ln\left(\frac{2\norm{\xls}^2}{\eps^2} + \frac{2\norm{\yls}^2}{\eps^2\sigma_{\min}^2(\matB)} \right)
++
+2\ln\left( \frac{2\norm{\yls}^2}{\eps^2\sigma_{\min}^2(\matB)} \right)\right),\]
+then the updates of estimates produced by Algorithm~\ref{alg:RGimproved} satisfy $\EE \norm{\x^{(k)} - \xls }^2 \leq \eps^2$.
+\end{lemma}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:7})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Set $\alpha = 1 - 1/\kappaFS(\matB)$. Let $l^*$ and $k^*$ be constant to be specified shortly. Repeat the proof of Lemma~\ref{lem:6} for $l^*$ iterations starting at the $(l^*+k^*)$-th iteration (use Ineq.~\eqref{ineq:generic}), it follows that
+\begin{align*}
+	\EE \norm{\x^{(l^* + k^*)} - \xls}^2  & \leq   \alpha^{l^*} \EE\norm{\x^{(k^*)} - \xls}^2 + \sum_{l=0}^{l^* - 1}\alpha^l \frac{\EE\norm{\w^{(k^* + l^* - l)}}^2}{\frobnorm{\matB}^2}.
+\end{align*}
+Now,
+%
+\begin{align*}
+\EE \norm{\x^{(l^* + k^*)} - \xls}^2			  & \leq  \alpha^{l^*} \EE\norm{\x^{(k^*)} - \xls}^2 + \frac{\EE\norm{\w^{(k^*)}}^2}{\frobnorm{\matB}^2}\sum_{l=0}^{\infty}\alpha^l \ \leq \  \alpha^{l^*} \left(\norm{\xls}^2 + \frac{\norm{\yls}^2}{\sigma_{\min}^2(\matB)} \right) + \frac{\EE\norm{\w^{(k^*)}}^2}{\sigma_{\min}^2(\matB)} \\
+\end{align*}
+%
+the first inequality follows by the fact that $\EE\norm{\w^{(k^* + j)}}^2 \leq \EE\norm{\w^{(k^*)}}^2$ for every $j>0$, the second by the convergence of the summation, the definition of $\alpha$ and Lemma~\ref{lem:6}. Now, set $k^* = 2\kappaFS(\matB) \ln( \frac{2\norm{\yls}^2}{\eps^2\sigma_{\min}^2(\matB)})$ in Lemma~\ref{lem:5} it holds that
+\[
+\EE\norm{\w^{(k^*)}}^2 = \EE\norm{\y^{(k)} - \yls}^2 \leq \eps^2 \sigma_{\min}^2(\matB) / 2.
+\]
+To conclude, set $l^* = \kappaFS(\matB)\ln\left(\frac{2\norm{\xls}^2}{\eps^2} + \frac{2\norm{\yls}^2}{\eps^2\sigma_{\min}^2(\matB)} \right)$, which implies that $\EE \norm{\x^{(k^*)} - \xls }^2 \leq \eps^2/2 \leq \eps^2$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The statement of Theorem~\ref{thm:improvedGossip} follows by Lemma~\ref{lem:7} since $\kappaFS(\matB) = \frobnorm{\matB}^2 / \sigma_{\min}^2(\matB) = 2m / \lambda_{\min}(\matB^\top \matB) = 2m / \lambda_2(G)$.

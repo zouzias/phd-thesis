@@ -1,0 +1,1242 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Matrix Algorithms}\label{chap:ma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this chapter\footnote{Section~\ref{sec:LS} appeared in~\cite{chernoff:matrix_valued:MZ11} (joint work with Avner Magen) and in~\cite{REK} (joint work with Nick Freris). The section on the element-wise matrix sparsification problem appeared in~\cite{matrix:sparsification:IPL2011} (joint work with Petros Drineas). The fast isotropic vector sparsification algorithm appeared in~\cite{ICALP12}.}, we develop and analyze randomized approximation algorithms for two matrix computational problems; the least squares problem (also known as linear regression) and the element-wise matrix sparsification problem. Moreover, we present a deterministic algorithm for isotropic vector sparsification and, as a consequence, spectral sparsification.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%		l_2 regression
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Randomized Approximate Least Squares}\label{sec:LS}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Let $\matA$ be an $m\times n$ non-zero real matrix and $\b$ be a real vector of size $m$. In the present section we analyze randomized algorithms for the least squares problem. The least squares problem is formally defined as follows:
+\begin{equation}\label{eq:ls}
+\text{Compute }\x\in \RR^n \text{ that is a minimizer of } \min_{\x\in\RR^n} \norm{\matA \x - \b}^2.
+\end{equation}
+To ensure uniqueness on the above minimization problem, it suffices to impose the requirement of returning a minimizing vector $\x$ of Eqn.~\eqref{eq:ls} that additionally has the minimum Euclidean norm. In this case, the minimum Euclidean norm vector that minimizes~Eqn.~\eqref{eq:ls} equals to $\xls=\pinv{\matA}\b$. Recall that the standard direct methods for computing $\xls$ require $\OO(mn^2)$ arithmetic operations. The main objective here is to design faster algorithms that compute an approximation to $\xls$.
+%
+
+%
+Here, two randomized algorithms are presented; each of which exploits randomness in a different manner. The first algorithm is effective in the case of \emph{overdetermined} linear systems\footnote{By overdetermined linear systems, we called linear systems that have much more constraints than variables.} and it is based on the dimensionality reduction paradigm~\cite{l2_regression:drineas06,sarlos,low_rank:STOC09,CW_stoc09,drineas:tensor_sparsification,chernoff:matrix_valued:MZ11,fasterLS}. The first algorithm is due to~\cite{sarlos}; here the main contribution is that we obtain tighter analysis than the analysis of~\cite{sarlos}. It is worth-mentioning that several surprising dimensionality reduction techniques have been quite recently obtained in which the projection step can be performed in input sparsity time, see~\cite{ls:nnzA,OSNAP,MP12}. The second algorithm which we call \emph{randomized extended Kaczmarz} (REK) is a randomized iterative algorithm that exponentially converges to $\xls$ in expectation.
+%
+
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Least squares solvers}\label{sec:related}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+We give a brief discussion on least squares solvers including deterministic direct and iterative algorithms together with recently proposed randomized algorithms. For a detailed discussion on deterministic methods, the reader is referred to~\cite{book:Bjork}. In addition, we place our contributions in context with prior work.
+\paragraph{Deterministic algorithms}
+In the literature, several methods have been proposed for solving least squares problems of the form~\eqref{eq:ls}. Here we briefly describe a representative sample of such methods including the use of QR factorization with pivoting, the use of the singular value decomposition (SVD) and iterative methods such as Krylov subspace methods applied on the normal equations~\cite{book:Saad}. LAPACK provides robust implementations of the first two methods; DGELSY uses QR factorization with pivoting and DGELSD uses the singular value decomposition~\cite{LAPACK}. For the iterative methods, LSQR is equivalent to applying the conjugate gradient method on the normal equations~\cite{PS82} and it is a robust and numerically stable method.
+\paragraph{Randomized algorithms}
+To the best of our knowledge, most randomized algorithms proposed in the theoretical computer science literature for approximately solving least squares are mainly based on the following generic two step procedure: first randomly (and efficiently) project the linear system into sufficiently many dimensions, and second return the solution of the down-sampled linear system as an approximation to the original optimal solution~\cite{petrosSODA06,sarlos,CW09,fasterLS}, see also~\cite{ls:nnzA}. Concentration of measure arguments imply that the optimal solution of the down-sampled system is close to the optimal solution of the original system. The accuracy of the approximate solution using this approach depends on the sample size and to achieve relative accuracy $\eps$, the sample size should depend inverse polynomially on $\eps$. This fact implies that these approaches are unsuitable for the high-precision regime of error.
+
+A different approach is the so called randomized preconditioning method, see~\cite{RT08,AMT10}. The authors of~\cite{AMT10} implemented Blendenpik, a high-precision least squares solver. Blendenpik consists of two steps. In the first step, the input matrix is randomly projected and an effective preconditioning matrix is extracted from the projected matrix. In the second step, an iterative least squares solver such as the LSQR algorithm of Paige and Saunders~\cite{PS82} is applied on the preconditioned system. Blendenpik is effective for overdetermined and underdetermined problems.
+
+A parallel iterative least squares solver based on normal random projections called LSRN was recently implemented by Meng, Saunders and Mahoney~\cite{lsrn}. LSRN consists of two phases. In the first preconditioning phase, the original system is projected using random normal projection from which a preconditioner is extracted. In the second step, an iterative method such as LSQR or the Chebyshev semi-iterative method~\cite{Chebyshev} is applied on the preconditioned system. This approach is also effective for over-determined and under-determined least squares problems assuming the existence of a parallel computational environment.
+%
+
+%
+A detailed numerical evaluation of the randomized extended Kaczmarz method has been obtained in~\cite{REK}. Here we highlight only its main points. In~\cite{REK}, the randomized extended Kaczmarz algorithm was compared against DGELSY, DGELSD, Blendenpik. LSRN~\cite{lsrn} did not perform well under a setup in which no parallelization is allowed. The numerical evaluation of Section~\cite[Section 5]{REK} indicates that the randomized extended Kaczmarz
+is effective on the case of sparse, well-conditioned and strongly rectangular (both overdetermined and underdetermined) least squares problems. On the other hand, a preconditioned version of the randomized extended Kaczmarz did not perform well under the case of ill-conditioned matrices.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Dimensionality Reduction for Least Squares}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We present an approximation algorithm for the least-squares regression problem; given an $m\times n$, $m\gg n$, matrix $\matA$ of rank $r$ and a vector $\b\in\RR^m$ we want to compute $\xls=\pinv{\matA}\b$ that minimizes $\norm{\matA\x-\b}$ over all $\x\in\RR^n$ and has the minimum Euclidean norm. In the paper~\cite{l2_regression:drineas06}, Drineas et al. show that if we non-uniformly sample $t=\Omega(n^2/\eps^2)$ rows from $\matA$ and $\b$, then with high probability the optimum solution of the $t\times n$ sampled problem will be within $(1+\eps)$ close to the original problem. The main drawback of their approach is that finding or even approximating the sampling probabilities is computationally intractable, i.e., requires $\OO(mn^2)$ operations. Sarlos~\cite{sarlos} improved the above bound to $t=\Omega( n\log n/\eps^2)$ and gave the first $o(mn^2)$ relative error approximation algorithm for this problem.
+%
+
+%
+In the next theorem we eliminate the extra logarithmic multiplicative factor from Sarlos bounds and replace the dimension (number of variables) $n$ with the rank $r$ of the constraints matrix $\matA$. We should point out that independently, the same bound as our Theorem~\ref{thm:ell2_regression} was obtained by Clarkson and Woodruff~\cite{CW_stoc09} (see also~\cite{fasterLS} and~\cite{ls:nnzA} for more recent improvements). The proof of Clarkson and Woodruff uses heavy machinery and a completely different approach. In a nutshell they manage to improve the matrix multiplication bound with respect to the Frobenius norm. They achieve this by bounding higher moments of the Frobenius norm of the approximation  viewed as a random variable instead of bounding the \emph{local} differences for each coordinate of the product. To do so, they rely on intricate moment calculations spanning over four pages, see~\cite{CW_stoc09} for more. On the other hand, the proof of the present $\ell_2$-regression bound uses only basic matrix analysis, elementary deviation bounds and $\eps$-net arguments. More precisely, we argue that Theorem~\ref{thm:matrixmult} (\textit{i.a}) immediately implies that by randomly-projecting to dimensions linear in the intrinsic dimensionality of the constraints, i.e., the rank of $\matA$, is sufficient as the following theorem indicates.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%		l_2 regression
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:ell2_regression}
+Let $\matA\in{\RR^{m\times n}}$ be a matrix of rank $r$ and $\b\in\RR^m$. Let $0<\eps<1/3$, $0<\delta <1$, $\matR$ be a $t\times m$ random sign matrix rescaled by $1/\sqrt{t}$ and $\widetilde{\x}_{\text{opt}}=\pinv{(\matR\matA)} \matR\b$.
+\begin{itemize}
+ \item
+If $t=\Omega(\frac{r}{\eps}\log (1/\delta))$, then with probability at least $1-\delta$,
+\begin{equation}\label{ineq:regression:approx}
+ \norm{\b-\matA\widetilde{\x}_{\text{opt}}} \leq (1+\eps) \norm{\b-\matA \xls }.
+\end{equation}
+\item
+If $t=\Omega(\frac{r}{\eps^2}\log(1/\delta))$, then with probability at least $1-\delta$,
+\begin{equation}\label{ineq:regression:x_opt}
+ \norm{\x_{\text{opt}} - \widetilde{\x}_{\text{opt}}} \leq \dfrac{\eps}{\sigma_{\min}(\matA)}\norm{\b-\matA\xls}.
+\end{equation}
+\end{itemize}
+\end{theorem}
+\begin{remark}
+The above result can be easily generalized to the case where $\b$ is an $m\times p$ matrix $\matB$ of rank at most $r$ (see proof). This is known as the generalized $\ell_2$-regression problem in the literature, i.e., $\arg\min_{\matX\in{n\times p}}\norm{\matA\matX-\matB}$ where $\matB$ is an $m\times p$ rank $r$ matrix.
+\end{remark}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:ell2_regression})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Similarly as the proof in~\cite{sarlos}. Let $\matA=\matU\matSig \matV^\top$ be the SVD of $\matA$. Let  $\b=\matA \xopt + \w$, where $\w\in\RR^m$ and $\w\bot$\text{colspan(\matA)}. Also let $\matA(\widetilde{\x}_{\text{opt}} - \xopt)=\matU\y$, where $\y \in \RR^{\rank{\matA}}$. Our goal is to bound this quantity
+\begin{align}
+ \norm{\b-\matA\widetilde{\x}_{\text{opt}}}^2 &= \norm{\b-\matA(\widetilde{\x}_{\text{opt}} - \xls) - \matA\xls }^2\nonumber
+                            \ =\  \norm{\w - \matU\y}^2 \nonumber
+			    \ = \ \norm{\w}^2 +\norm{\matU\y}^2,  \quad \text{since }\w\bot \text{colspan}(U)\nonumber  \\
+				& =  \norm{\w}^2 + \norm{\y}^2, \quad \text{since} \matU^\top \matU = \Id. \label{eq:l2_basic}
+\end{align}
+It suffices to bound the norm of $\y$, i.e., $\norm{\y} \leq 3\eps \norm{\w}$. Recall that given $\matA,\b$ the vector $\w$ is uniquely defined. On the other hand, vector $\y$ depends on the random projection $\matR$. Next we show the connection between $\y$ and $\w$ through the ``normal equations''.
+\begin{align}
+	\matR\matA\widetilde{\x}_{\text{opt}}  &= \matR\b +\w_2 \implies \nonumber
+	\matR\matA\widetilde{\x}_{\text{opt}}   = \matR(\matA\xls + \w) + \w_2 \implies \nonumber \\
+	\matR\matA(\widetilde{\x}_{\text{opt}} - \x_{\text{opt}})  &= \matR\w + \w_2 \implies \nonumber
+	\matU^\top \matR^\top \matR \matU \y  = \matU^\top \matR^\top \matR\w  + \matU^\top  \matR^\top  \w_2 \implies
+\nonumber \\
+	\matU^\top \matR^\top \matR \matU \y  &= \matU^\top \matR^\top \matR\w \label{eq:random_l2},
+\end{align}
+where $\w_2\bot\text{colspan}(\matR)$, and used this fact to derive Ineq.~\eqref{eq:random_l2}. A crucial observation is that the  $\text{colspan}(\matU)$ is perpendicular to $\w$. Set $\matA=\matB=\matU$ in Theorem~\ref{thm:matrixmult} (i.a), and set $\eps' = \sqrt{\eps}$, and $t=\Omega( \frac{r}{\eps'^2}\log(1/\delta))$. Notice that $\rank{\matA}+\rank{\matB} \leq 2r$, hence with probability at least $1-\delta/2$ we know that $1-\eps' \leq \sigma_i(\matR\matU) \leq 1 + \eps'$. It follows that
+\begin{equation}\label{eq:ls:1}
+\norm{\matU^\top \matR^\top \matR \matU \y } \geq (1-\eps')^2 \norm{\y}.
+\end{equation}
+A similar argument (set $\matA=\matU$ and $\matB=\w$ in Theorem~\ref{thm:matrixmult} (i.a)) guarantees that (since $t\geq \Omega( \frac{r}{\eps'^2}\log(1/\delta))$)
+\begin{equation}\label{eq:ls:2}
+	\norm{\matU^\top \matR^\top \matR\w } = \norm{\matU^\top \matR^\top \matR\w - \matU^\top \w} \leq \eps' \norm{\matU} \norm{\w}= \eps' \norm{\w}
+\end{equation}
+with probability at least $1-\delta /2$. Recall that $\norm{\matU}  = 1$, since $\matU^\top \matU = \Id_n$. Therefore, condition on both the events~\eqref{eq:ls:1} and~\eqref{eq:ls:2} (which occur w.p. at least $1-\delta$) and take Euclidean norms on both sides of Equation~\eqref{eq:random_l2} to conclude that
+\[ \norm{ \y} \leq \dfrac{\eps'}{(1-\eps')^2} \norm{\w} \leq 4\eps' \norm{\w}. \]
+Summing up, it follows from Equation~\eqref{eq:l2_basic} that, with probability at least $1-\delta$, $\norm{\b-\matA\widetilde{\x}_{\text{opt}}}^2 \leq (1+16\eps'^2) \norm{\w} = (1 + 16\eps) \norm{\b-\matA\xopt}^2.$ This proves Ineq.~\eqref{ineq:regression:approx}.
+%
+
+%
+Ineq.~\eqref{ineq:regression:x_opt} follows directly from the bound on the norm of $\y$ repeating the above proof for $\eps' \leftarrow \eps $. First recall that $\xopt$ is in the row span of $\matA$, since $\xopt = \matV\matSig^{-1} \matU^\top \b$ and the columns of $\matV$ span the row space of $\matA$. Similarly for $\widetilde{\x}_{\text{opt}}$ since the row span of $\matR \matA$ is contained in the row-span of $\matA$. Indeed, $\eps \norm{\w} \geq \norm{\y} =\norm{\matU\y} = \norm{\matA(\xopt - \widetilde{\x}_{\text{opt}}) } \geq \sigma_{\min(\matA)} \norm{ \xopt - \widetilde{\x}_{\text{opt}} }$.
+\end{proof}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Randomized Extended Kaczmarz}\label{sec:REK}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+The Kaczmarz method is an iterative projection algorithm for solving linear systems of equations~\cite{K}. Due to its simplicity, the Kaczmarz method has found numerous applications including image reconstruction, distributed computation and signal processing to name a few~\cite{K:apps:CFM92,book:K:apps:H80,book:K:apps:Nat01,CDC12}, see~\cite{K:apps} for more applications. The Kaczmarz method has also been rediscovered in the field of image reconstruction and called ART (Algebraic Reconstruction Technique)~\cite{ART}, see also~\cite{book:Zenios,book:K:apps:H80} for additional references. It has been also applied to more general settings, see~\cite[Table~1]{K:apps} and \cite{K:tompk,K:rate:MC77} for non-linear versions of the Kaczmarz method.
+
+Throughout Section~\ref{sec:REK}, all vectors are assumed to be column vectors. The Kaczmarz method operates as follows: Initially, it starts with an arbitrary vector $\x^{(0)}\in\RR^n$. In each iteration, the Kaczmarz method goes through the rows of $\matA$ in a cyclic manner\footnote{That is, selecting the indices of the rows from the sequence $1,2,\ldots , m , 1,2 , \ldots$.} and for each selected row, say $i$-th row $\ar{i}$, it orthogonally projects the current estimate vector onto the affine hyperplane defined by the $i$-th constraint of $\matA\x = \b$, i.e., $\{\x\ |\ \ip{\ar{i}}{\x} = b_i\}$ where $\ip{\cdot}{\cdot}$  is the Euclidean inner product. More precisely, assuming that the $i_k$-th row has been selected at $k$-th iteration, then the $(k+1)$-th estimate vector $\x^{(k+1)}$ is inductively defined by
+\[\x^{(k+1)} := \x^{(k)} + \lambda_k\frac{b_{i_k} - \ip{\ar{i_k}}{ \x^{(k)}}}{\norm{\ar{i_k}}^2} \ar{i_k}\]
+where $\lambda_k \in \RR$ are the so-called relaxation parameters and $\norm{\cdot}$ denotes the Euclidean norm. The original Kaczmarz method corresponds to $\lambda_k = 1$ for all $k\geq 0$ and all other setting of $\lambda_k$'s are usually referred as the \emph{relaxed Kaczmarz method} in the literature~\cite{K:apps,book:Galantai}.
+
+Kaczmarz proved that this process converges to the unique solution for square non-singular matrices~\cite{K}, but without any attempt to bound the rate of convergence. Bounds on the rate of convergence of the Kaczmarz method are given in~\cite{K:rate:MC77}, \cite{K:rate:Ansorge} and \cite[Theorem~4.4, p.120]{book:Galantai}. In addition, an error analysis of the Kaczmarz method under the finite precision model of computation is given in~\cite{phdthesis:K:error,K:error}.
+%
+
+%
+%More precisely, let $\widehat{\matA}\in\RR^{m\times n}$ whose row set is the rows of $\matA$ normalized to unit length. Then it follows that after a sweep over all rows of $\matA$, Kaczmarz's method improves its estimate by $1- \det (\widehat{\matA}^\top \widehat{\matA})$.
+
+Nevertheless, the Kaczmarz method converges even if the linear system $\matA\x = \b$ is overdetermined ($m>n$) and has no solution. In this case and provided that $\matA$ has full column rank, the Kaczmarz method converges to the least squares estimate. This was first observed by Whitney and Meany~\cite{K:rate:WM67} who proved that the relaxed Kaczmarz method converges provided that the relaxation parameters are within $[0,2]$ and $\lambda_k\to 0$, see also~\cite[Theorem~1]{K:relax:CEG83}, \cite{K:Tanabe} and~\cite{K:relax:Hanke90} for additional references.
+%STATE the result here. (THEOREM 4.32 from BOOK, see also Herman, Lent, Lutz and CEG82). where and later Tanabe proved it~\cite{K:Tanabe}.
+
+In the literature there was empirical evidence that selecting the rows non-uniformly at random may be more effective than selecting the rows via Kaczmarz's cyclic manner~\cite{RK:HM93,K:apps:CFM92}. Towards explaining such an empirical evidence, Strohmer and Vershynin proposed a simple randomized variant of the Kaczmarz method that has exponential convergence \emph{in expectation}~\cite{RK} assuming that the linear system is solvable; see also~\cite{LS:RCD} for extensions to linear constraints. A randomized iterative algorithm that computes a sequence of random vectors $\x^{(0)}, \x^{(1)}, \ldots$ is said to \emph{converge in expectation} to a vector $\x^*$ if and only if $\EE \norm{\x^{(k)} - \x^*}^2\to 0$ as $k\to\infty$, where the expectation is taken over the random choices of the algorithm. Soon after~\cite{RK}, Needell analyzed the behavior of the randomized Kaczmarz method for the case of full column rank linear systems that do not have any solution~\cite{Needell09}. Namely, Needell proved that the randomized Kaczmarz estimate vector is (in the limit) within a fixed distance from the least squares solution and also that this distance is proportional to the distance of $\b$ from the column space of $\matA$. In other words, Needell proved that the randomized Kaczmarz method is effective for least squares problems whose least squares error is negligible.
+
+We present a randomized iterative least squares solver (REK, Algorithm~\ref{alg:REK}) that converges in expectation to $\xls$. REK is based on~\cite{RK,Needell09} and inspired by~\cite{popa}. More precisely the proposed algorithm can be thought of as a randomized variant of Popa's extended Kaczmarz method~\cite{popa}, therefore we named it as \emph{randomized extended Kaczmarz}.
+
+%In this setting, it turns out that the randomized Kaczmarz estimate vector is within a fixed distance from the least squares solution. In addition, the distance is proportional, roughly speaking,  to the distance of $\b$ from the column space of $\matA$ which in general can be arbitrarily large.
+%
+%
+% We mostly follow this book~\cite{book:Galantai}.
+%Books : \cite{book:Bodewig}, \cite{book:Gastinel}
+
+
+%
+\paragraph{Roadmap}
+%
+%
+%In Section~\ref{sec:related}, we briefly discuss related work on the design of deterministic and randomized algorithms for solving least squares problems.
+First, we discuss the convergence properties of the randomized Kaczmarz algorithm for solvable systems as in~\cite{RK} (Theorem~\ref{thm:RK:consistent}) and also recall its analysis for non-solvable systems (Theorem~\ref{thm:RK:inconsistent}). Second, we present and analyze the randomized extended Kaczmarz algorithm.
+%Finally, in Section~\ref{sec:impl} we provide a numerical evaluation of the proposed algorithm.
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Randomized Kaczmarz}
+%\label{sec:RK}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+Strohmer and Vershynin proposed the following randomized variant of Kaczmarz algorithm~(Algorithm~\ref{alg:RK}), see~\cite{RK} for more details. The following theorem is a restatement of the main result of~\cite{RK} without imposing the full column rank assumption.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:RK:consistent}
+Let $\matA\in\RR^{m\times n}$, $\b\in\RR^m$ and $T>1$ be the input to Algorithm~\ref{alg:RK}. Assume that $\matA \x = \b$ has a solution and denote $\xls:=\pinv{\matA}\b$. In exact arithmetic, Algorithm~\ref{alg:RK} converges to $\xls$ in expectation:
+	\begin{equation}
+		\EE \norm{\x^{(k)} - \xls}^2 \leq \left(1 - \frac1{\kappaFS(\matA)}\right)^k \norm{\x^{(0)} - \xls}^2\quad \forall\ k>0.
+	\end{equation}
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{remark}
+The above theorem has been proved in~\cite{RK} for the case of full column rank. Also, the rate of expected convergence in~\cite{RK} is $1-1/\widetilde{\kappa}^2 (\matA)$ where $\widetilde{\kappa}^2(\matA) := \frobnorm{\matA}^2 / \sigma_{\min{(m,n)}}(\matA^\top \matA)$. Notice that if $\rank{\matA}< n$, then $\widetilde{\kappa}^2(\matA)$ is infinite whereas $\kappaFS(\matA)$ is bounded.
+\end{remark}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{algorithm}{}
+	\caption{Randomized Kaczmarz~\cite{RK}}\label{alg:RK}
+\begin{algorithmic}[1]
+\Procedure{}{$\matA$, $\b$, $T$}\Comment{$\matA\in\RR^{m\times n}, \b\in\RR^m$}
+\State Set $\x^{(0)}$ to be any vector in the row space of $\matA$
+\For {$k=0,1,2,\ldots , T-1$ }
+	\State Pick $i_k\in[m]$ with probability $q_i:=\norm{\ar{i}}^2/\frobnorm{\matA}^2, i\in [m]$
+	\State Set $ \x^{(k+1)} = \x^{(k)}  + \frac{b_{i_k} - \ip{\x^{(k)}}{\ar{i_k} }}{\norm{\ar{i_k}}^2} \ar{i_k}$
+\EndFor
+\State Output $\x^{(T)}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+We devote the rest of this subsection to prove Theorem~\ref{thm:RK:consistent} following~\cite{RK}. The proof is based on the following two elementary lemmas which both appeared in~\cite{RK}. However, in our setting, the second lemma is not identical to that in~\cite{RK}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}[Orthogonality]\label{lem:ortho}
+Assume that $\matA\x= \b$ has a solution and use the notation of Algorithm~\ref{alg:RK}, then $\x^{(k+1)} -\xls$ is perpendicular to $\x^{(k+1)} - \x^{(k)}$ for any $k\geq 0$. In particular, in exact arithmetic it holds that $\norm{\x^{(k+1)} - \xls}^2 = \norm{\x^{(k)} - \xls}^2 - \norm{\x^{(k+1)} - \x^{(k)}}^2$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:ortho})
+It suffices to show that $\ip{\x^{(k+1)} - \xls}{\x^{(k+1)} - \x^{(k)}} = 0$. For notational convenience, let $\alpha_i := \frac{b_i - \ip{\x^{(k)}}{\ar{i}}}{\norm{\ar{i}}^2}$ for every $i\in{[m]}$. Assume that $\x^{(k+1)} = \x^{(k)} + \alpha_{i_k} \ar{i_k}$ for some arbitrary $i_k\in [m]$. Then,
+\begin{align*}
+	\ip{\x^{(k+1)} - \xls}{\x^{(k+1)} - \x^{(k)} }  & =   \ip{\x^{(k+1)} - \xls}{ \alpha_{i_k} \ar{i_k}} \ = \ \alpha_{i_k}\left(\ip{\x^{(k+1)} }{ \ar{i_k}} -  b_{i_k}\right)
+\end{align*}
+using the definition of $\x^{(k+1)}$, and the fact that $\ip{\xls}{\ar{i_k}} = b_{i_k}$ since $\xls$ is a solution to $\matA\x=\b$. Now, by the definition of $\alpha_{i_k} $, $\ip{\x^{(k+1)}}{\ar{i_k}} = \ip{\x^{(k)}}{\ar{i_k}} + \alpha_{i_k} \norm{\ar{i_k}}^2 = \ip{\x^{(k)}}{\ar{i_k}} + b_{i_k} - \ip{\x^{(k)}}{\ar{i_k}} = b_{i_k}$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+The above lemma provides a formula for the error at each iteration. Ideally, we seek to minimize the error at each iteration which is equivalent to maximizing $\norm{\x^{(k+1)} - \x^{(k)}}$ over the choice of the row projections of the algorithm. The next lemma suggests that by randomly picking the rows of $\matA$ reduces the error in expectation.
+%%
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}[Expected Error Reduction]\label{lem:avg}
+Assume that $\matA\x=\b$ has a solution. Let $Z$ be a random variable over $[m]$ with distribution $\Prob{Z=i} = \frac{\norm{\ar{i}}^2}{\frobnorm{\matA}^2}$ and assume that $\x^{(k)}$ is a vector in the row space of $\matA$. If $\x^{(k+1)} := \x^{(k)} + \frac{b_Z - \ip{\x^{(k)}}{\ar{Z}}}{\norm{\ar{Z}}^2} \ar{Z}$ (in exact arithmetic), then
+\begin{equation}
+\EE_{Z}\norm{\x^{(k+1)} - \xls}^2 \leq \left(1 - \frac1{\kappaFS(\matA)}\right) \norm{\x^{(k)} - \xls}^2.
+\end{equation}
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:avg})
+%
+In light of Lemma~\ref{lem:ortho}, it suffices to show that $\EE_{Z}\norm{\x^{(k+1)} - \x^{(k)}}^2 \geq \frac1{\kappaFS(\matA)} \norm{\x^{(k)} - \xls}^2$.
+%
+By the definition of $\x^{(k+1)}$, it follows
+\begin{align*}
+\EE_{Z}\norm{\x^{(k+1)} - \x^{(k)}}^2  &= \EE_{Z} \left[\left(\frac{b_Z - \ip{\x^{(k)}}{\ar{Z} }}{\norm{\ar{Z}}^2}\right)^2 \norm{\ar{Z}}^2\right] \ =\  \EE_{Z} \frac{\ip{\xls - \x^{(k)} }{\ar{Z}}^2}{\norm{\ar{Z}}^2} \\
+ & =   \sum_{i=1}^{m} \frac{\ip{\xls - \x^{(k)}}{\ar{i}}^2}{\frobnorm{\matA}^2} = \frac{\norm{\matA (\xls - \x^{(k)})}^2}{\frobnorm{\matA}^2}.
+\end{align*}
+By hypothesis, $\x^{(k)}$ is in the row space of $\matA$ for any $k$ when $\x^{(0)}$ is; in addition,
+the same is true for $\xls$ by the definition of pseudo-inverse~\cite{book:GVL}. Therefore,
+$\norm{\matA(\xls - \x^{(k)})} \geq \sigma_{\min} \norm{\xls - \x^{(k)} }$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+Theorem~\ref{thm:RK:consistent} follows by iterating Lemma \ref{lem:avg}, we get that
+\[\EE \norm{\x^{(k+1)} - \xls}^2 \leq \left(1 - \frac1{\kappaFS(\matA)}\right)^k \norm{\x^{(0)} - \xls}^2.\]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Randomized Kaczmarz Applied to Noisy Linear Systems}
+%\label{sec:noisyRK}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The analysis of Strohmer and Vershynin is based on the restrictive assumption that the linear system has a solution. Needell made a step further and analyzed the more general setting in which the linear system does not have any solution and $\matA$ has full column rank~\cite{Needell09}. In this setting, it turns out that the randomized Kaczmarz algorithm computes an estimate vector that is within a fixed distance from the solution; the distance is proportional to the norm of the ``noise vector'' multiplied by $\kappaFS(\matA)$~\cite{Needell09}. The following theorem is a restatement of the main result in~\cite{Needell09} with two modifications: the full column rank assumption on the input matrix is dropped and the additive term $\gamma$ of Theorem~$2.1$ in~\cite{Needell09} is improved to $\norm{\w}^2/\frobnorm{\matA}^2$. The only technical difference here from~\cite{Needell09} is that the full column rank assumption is not necessary.
+%
+\begin{theorem}\label{thm:RK:inconsistent}
+Assume that the system $\matA \x = \y$ has a solution for some $\y\in\RR^m$. Denote by $\x^{*} := \pinv{\matA}\y$. Let $\hat\x^{(k)}$ denote the $k$-th iterate of the randomized Kaczmarz algorithm applied to the linear system $\matA \x = \b$ with $\b:=\y + \w$ for any fixed $\w\in\RR^m$, i.e., run Algorithm~\ref{alg:RK} with input $(\matA,\b)$. In exact arithmetic, it follows that
+%
+\begin{equation}\label{ineq:relaxRK}
+\EE \norm{\hat\x^{(k)} - \x^{*}}^2 \le \left(1-\frac1{\kappaFS(\matA)}\right)\EE \norm{\hat\x^{(k-1)} - \x^{*}}^2 + \frac{\norm{\w}^2}{\frobnorm{\matA}^2}.
+\end{equation}
+%
+%
+In particular,
+\[\EE \norm{\hat\x^{(k)} - \x^{*}}^2 \le \left(1-\frac1{\kappaFS(\matA)}\right)^k \norm{\x^{(0)}- \x^{*}}^2 + \frac{\norm{\w}^2}{\sigma^2_{\min} }.\]
+%
+%
+\end{theorem}
+%
+%
+%
+\begin{proof}
+%(of Theorem~\ref{thm:RK:inconsistent})
+As in~\cite{Needell09}, for any $i\in{[m]}$ define the affine hyper-planes:
+%
+\begin{align*}
+\mathcal{H}_i &:= \{\x: \ip{\ar{i}}{\x} = y_i\}\\
+\mathcal{H}_i^{w_i} &:= \{\x: \ip{\ar{i} }{\x} = y_i + w_i\}
+\end{align*}
+Assume for now that at the $k$-th iteration of the randomized Kaczmarz algorithm applied on $(\matA, \b)$, the $i$-th row is selected. Note that $\hat\x^{(k)}$ is the projection of $\hat\x^{(k-1)}$ on $\mathcal{H}_i^{w_i}$ by the definition of the randomized Kaczmarz algorithm on input $(\matA,\b)$. Let us denote the projection of $\hat\x^{(k-1)}$ on $\mathcal{H}_i$ by $\x^{(k)}$. The two affine hyper-planes $\mathcal{H}_i,\mathcal{H}_i^{w_i}$ are \emph{parallel} with common normal $\ar{i}$, so $\x^{(k)}$ is the projection of $\hat\x^{(k)}$ on $\mathcal{H}_i$ and the minimum distance between $\mathcal{H}_i$ and $\mathcal{H}_i^{w_i}$ equals $|w_i| / \norm{\ar{i}}$. In addition, $\x^{*}\in \mathcal{H}_i$ since $\ip{\x^{*}}{\ar{i}} = y_i$, therefore by orthogonality we get that
+\begin{equation}\label{eq:1}
+\norm{\hat\x^{(k)} - \x^{*}}^2 = \norm{\x^{(k)} - \x^{*}}^2 + \norm{\hat\x^{(k)} - \x^{(k)}}^2.
+\end{equation}
+Since $\x^{(k)}$ is the projection of $\hat\x^{(k-1)}$ onto $\mathcal{H}_i$ (that is to say, $\x^{(k)}$ is a randomized Kaczmarz step applied on input $(\matA, \y)$ where the $i$-th row is selected on the $k$-th iteration) and $\hat\x^{(k-1)}$ is in the row space of $\matA$, Lemma~\ref{lem:avg} tells us that
+\begin{equation}\label{eq:2}
+ \EE\norm{\x^{(k)} - \x^{*}}^2 \le \left(1 - \frac1{\kappaFS(\matA)}\right) \norm{\hat\x^{(k-1)} - \x^{*}}^2.
+\end{equation}
+Note that for given selected row $i$ we have $ \norm{\hat\x^{(k)} - \x^{(k)}}^2= \frac{w_i^2}{\norm{\ar{i}}^2}$;
+by the distribution of selecting the rows of $\matA$ we have that
+\begin{equation}\label{eq:3}
+\E\norm{\hat\x^{(k)} - \x^{(k)}}^2 = \sum_{i=1}^{m} q_i \frac{w_i^2}{\norm{\ar{i}}^2} = \frac{\norm{\w}^2}{\frobnorm{\matA}^2}.
+\end{equation}
+Inequality~\eqref{ineq:relaxRK} follows by taking expectation on both sides of Equation~\eqref{eq:1} and bounding its resulting right hand side using Equations~\eqref{eq:2} and~\eqref{eq:3}. Applying Inequality~\eqref{ineq:relaxRK} inductively, it follows that
+\[\EE \norm{\hat\x^{(k)} - \x^{*}}^2 \le \left(1-\frac1{\kappaFS(\matA)}\right)^k\norm{\x^{(0)}- \x^{*}}^2 + \frac{\norm{\w}^2}{\frobnorm{\matA}^2}\sum_{i=0}^{k} \left(1-\frac1{\kappaFS(\matA)}\right)^i,\]
+where we used that $\x^{(0)}$ is in the row space of $\matA$. The latter sum is bounded above by $\sum_{i=0}^{\infty} \left(1-\frac1{\kappaFS(\matA)}\right)^i =\frobnorm{\matA}^2 / \sigma^2_{\min}$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection*{Randomized Extended Kaczmarz}
+%\label{sec:result}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+Given any least squares problem, Theorem~\ref{thm:RK:inconsistent} with $\w = \bc$ tells us that the randomized Kaczmarz algorithm works well for least square problems whose least squares error is very close to zero, i.e., $\norm{\w}\approx 0$. Roughly speaking, in this case the randomized Kaczmarz algorithm approaches the minimum $\ell_2$-norm least squares solution up to an additive error that depends on the distance between $\b$ and the column space of $\matA$.
+
+Here, the main observation is that it is possible to efficiently reduce the norm of the ``noisy'' part of $\b$, $\bc$ (using Algorithm~\ref{alg:randOP}) and then apply the randomized Kaczmarz algorithm on a new linear system whose right hand side vector is now arbitrarily close to the column space of $\matA$, i.e., $\matA\x\approx \br$. This idea together with the observation that the least squares solution of the latter linear system is equal (in the limit) to the least squares solution of the original system (see Fact~\ref{fact:xls}) implies a randomized algorithm for solving least squares.
+
+Next we present the randomized extended Kaczmarz algorithm which is a specific combination of the randomized orthogonal projection algorithm together with the randomized Kaczmarz algorithm.
+%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{The algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\begin{algorithm}{}
+	\caption{Randomized Extended Kaczmarz (REK)}\label{alg:REK}
+\begin{algorithmic}[1]
+\Procedure{}{$\matA$, $\b$, $\eps$}\Comment{$\matA\in\RR^{m\times n}, \b\in\RR^m$, $\eps >0$}
+\State Initialize $\x^{(0)}=\zeromtx$ and $\z^{(0)} =\b$
+\For {$k=0,1,2,\ldots $ }
+	\State Pick $i_k\in[m]$ with probability $q_i:=\norm{\ar{i}}^2/\frobnorm{\matA}^2, i\in [m]$
+	\State Pick $j_k\in[n]$ with probability $p_j:=\norm{\ac{j}}^2/\frobnorm{\matA}^2,\ j\in [n]$
+	\State Set $ \z^{(k+1)} = \z^{(k)} - \frac{\ip{\ac{j_k}}{\z^{(k)}}}{\norm{\ac{j_k}}^2}\ac{j_k}  $
+	\State Set $ \x^{(k+1)} = \x^{(k)}  + \frac{b_{i_k} - z^{(k)}_{i_k} - \ip{\x^{(k)}}{\ar{i_k} }}{\norm{\ar{i_k}}^2} \ar{i_k}$
+	\State\label{alg:stopping} Check every $8 \min (m,n)$ iterations and terminate if it holds:
+	\[  \frac{\norm{\matA \x^{(k)} - (\b - \z^{(k)}) }}{\frobnorm{\matA} \norm{\x^{(k)}}}  \leq \eps \quad\text{and} \quad \frac{\norm{\matA^\top \z^{(k)}}}{\frobnorm{\matA}^2\norm{\x^{(k)}}} \leq \eps.\]
+
+\EndFor
+\State Output $\x^{(k)}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+The proposed algorithm consists of two components. The first component consisting of Steps $5$ and $6$ is responsible to implicitly maintain an approximation to $\br$ formed by $\b-\z^{(k)}$. The second component, consisting of Steps 4 and 7, applies the randomized Kaczmarz algorithm with input $\matA$ and the current approximation $\b -\z^{(k)}$ of $\br$, i.e., applies the randomized Kaczmarz on the system $\matA \x = \b - \z^{(k)}$. Since $\b - \z^{(k)}$ converges to $\br$, $\x^{(k)}$ will eventually converge to the minimum Euclidean norm solution of $\matA \x = \br$ which equals to $\xls=\pinv{\matA}\b$ (see Fact~\ref{fact:xls}).
+%
+
+The stopping criterion of Step~\ref{alg:stopping} was decided based on the following analysis. Assume that the termination criteria are met for some $k>0$. Let $\z^{(k)} = \bc + \w$ for some $\w\in\colspan{\matA}$ (which holds by the definition of $\z^{(k)}$). Then,
+\begin{align*}
+	\norm{\matA^\top \z^{(k)}} &= \norm{\matA^\top (\bc + \w)} = \norm{\matA^\top \w} \geq \sigma_{\min}(\matA)\norm{\z^{(k)} - \bc}.
+\end{align*}
+By rearranging terms and using the second part of the termination criterion, it follows that $\norm{\z^{(k)} - \bc} \leq \eps \frac{\frobnorm{\matA}^2}{\sigma_{\min}} \norm{\x^{(k)}}$. Now,
+\begin{align*}
+	\norm{\matA(\x^{(k)} - \xls)} & \leq \norm{\matA\x^{(k)} - (\b - \z^{(k)}) } + \norm{ \b- \z^{(k)} - \matA\xls} \\
+								  & \leq \eps \frobnorm{\matA} \norm{\x^{(k)}} + \norm{\bc - \z^{(k)}} \\
+								  & \leq \eps \frobnorm{\matA} \norm{\x^{(k)}} + \eps \frac{\frobnorm{\matA}^2}{\sigma_{\min}} \norm{\x^{(k)}},
+\end{align*}
+where we used the triangle inequality, the first part of the termination rule together with $\br = \matA\xls$ and the above discussion.
+Now, since $\x^{(k)},\xls \in\colspan{\matA^\top}$, it follows that
+\begin{equation}\label{REK:forwardErr}
+			\frac{\norm{\x^{(k)} - \xls } }{\norm{\x^{(k)}}} \leq \eps \kappaF(\matA) ( 1 + \kappaF(\matA)).
+\end{equation}
+Equation~\eqref{REK:forwardErr} demonstrates that the forward error of REK after termination is bounded.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Rate of convergence}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The following theorem bounds the expected rate of convergence of Algorithm~\ref{alg:REK}.
+%
+%
+\begin{theorem}\label{thm:REK}
+After $T>1$ iterations, in exact arithmetic, Algorithm~\ref{alg:REK} with input $\matA$ (possibly rank-deficient) and $\b$ computes a vector $\x^{(T)}$ such that
+%
+%
+\[ \EE \norm{\x^{(T)} - \xls}^2 \leq \left(1 - \frac1{\kappaFS(\matA)}\right)^{\lfloor T/2\rfloor}\left(1 + 2\cond{\matA}\right) \norm{\xls}^2.\]
+%
+%
+\end{theorem}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+For the sake of notation, set $\alpha =1- 1/\kappaFS(\matA)$ and denote by $\EE_{k}[\cdot] := \EE[\cdot \ |\ i_0,j_0, i_1,j_1,\ldots , i_k, j_k]$, i.e., the conditional expectation with respect to the first $k$ iterations of Algorithm~\ref{alg:REK}. Observe that Steps $5$ and $6$ are independent from Steps $4$ and $7$ of Algorithm~\ref{alg:REK}, so Theorem~~\ref{thm:randOP} implies that for every $l\geq 0$
+\begin{equation}\label{eq:improve}
+\EE \norm{\z^{(l)} - \bc }^2 \leq \alpha^l \norm{\br}^2 \leq \norm{\br}^2.
+\end{equation}
+Fix a parameter $k^* := \lfloor T/2 \rfloor$. After the $k^*$-th iteration of Algorithm~\ref{alg:REK}, it follows from Theorem~\ref{thm:RK:inconsistent} (Inequality~\eqref{ineq:relaxRK}) that
+\begin{align*}
+	\EE_{(k^*-1)} \norm{\x^{(k^*)} - \xls}^2 & \leq  \alpha  \norm{\x^{(k^* - 1)} - \xls}^2 + \frac{ \norm{\bc - \z^{(k^* - 1)}}^2}{\frobnorm{\matA}^2}.
+\end{align*}
+Indeed, the randomized Kaczmarz algorithm is executed with input $(\matA, \b - \z^{(k^*-1)})$ and current estimate vector $\x^{(k^* -1)}$. Set $\y=\br$ and $\w=\bc - \z^{(k^*-1)}$ in Theorem~\ref{thm:RK:inconsistent} and recall that $\xls=\pinv{\matA} \b = \pinv{\matA}\br = \pinv{\matA}\y$.
+%
+
+%
+Now, averaging the above inequality over the random variables $i_1,j_1, i_2, j_2, \ldots, i_{k^* - 1}, j_{k^* - 1}$ and using linearity of expectation, it holds that
+\begin{align}
+	\EE \norm{\x^{(k^*)} - \xls}^2 & \leq  \alpha  \EE\norm{\x^{(k^* - 1)} - \xls}^2 + \frac{ \EE\norm{\bc - \z^{(k^* - 1)}}^2}{\frobnorm{\matA}^2}\label{eq:star}\\
+	& \leq  \alpha \EE \norm{\x^{(k^* - 1)} - \xls}^2 + \frac{\norm{\br}^2}{\frobnorm{\matA}^2} \quad  \text{by Ineq.}~\eqref{eq:improve}\nonumber\\
+	& \leq  \ldots \leq \alpha^{k^*}\norm{\x^{(0)} - \xls}^2 + \sum_{l=0}^{k^* - 2} \alpha^l \frac{\norm{\br}^2}{\frobnorm{\matA}^2},\quad (\text{repeat the above } k^* - 1 \text{ times}) \nonumber \\
+	& \leq  \norm{\xls}^2 + \sum_{l=0}^{\infty} \alpha^l \frac{\norm{\br}^2}{\frobnorm{\matA}^2}, \quad \text{since } \alpha <1\text{ and }\x^{(0)} = \zero . \nonumber
+\end{align}
+Simplifying the right hand side using the fact that $\sum_{l=0}^{\infty} \alpha^l = \frac1{1-\alpha} = \kappaFS(\matA)$, it follows
+\begin{equation}\label{eq:stopTime}
+		\EE \norm{\x^{(k^*)} - \xls}^2 \leq  \norm{\xls}^2 + \norm{\br}^2/\sigma_{\min}^2.
+\end{equation}
+Moreover, observe that for every $l\geq 0$
+\begin{equation}\label{eq:better}
+\EE \norm{\bc - \z^{(l+k^*)}}^2 \leq \alpha^{l+k^*} \norm{\br}^2 \leq \alpha^{k^*}\norm{\br}^2.
+\end{equation}
+Now for any $k>0$, similar considerations as Ineq.~\eqref{eq:star} implies that
+\begin{align*}
+\EE \norm{\x^{(k + k^*)} - \xls}^2  & \leq   \alpha \EE \norm{\x^{(k + k^* - 1)} - \xls}^2 + \frac{\EE \norm{\bc - \z^{(k - 1 + k^*)}}^2}{\frobnorm{\matA}^2} \\
+									& \leq   \ldots \leq \alpha^k \EE \norm{\x^{(k^*)} - \xls}^2 + \sum_{l=0}^{k - 1}\alpha^{(k - 1) - l} \frac{\EE \norm{\bc - \z^{(l + k^*)}}^2}{\frobnorm{\matA}^2} \quad \text{(by induction)}\\
+									& \leq   \alpha^k \EE \norm{\x^{(k^*)} - \xls}^2 + \frac{\alpha^{k^*}\norm{\br}^2}{\frobnorm{\matA}^2} \sum_{l=0}^{k - 1}\alpha^{l} \quad  \text{(by Ineq.~\eqref{eq:better})} \\
+									& \leq   \alpha^k \left(\norm{\xls}^2 + \norm{\br}^2/\sigma_{\min}^2\right)  + \alpha^{k^*}\norm{\br}^2 / \sigma_{\min}^2 \quad  \left(\text{by Ineq.~\eqref{eq:stopTime}}\right) \\
+									&   =   \alpha^k \norm{\xls}^2 + (\alpha^{k}+\alpha^{k^*}) \norm{\br}^2/\sigma_{\min}^2\\
+									&   \leq   \alpha^k \norm{\xls}^2 + (\alpha^{k}+\alpha^{k^*}) \cond{\matA} \norm{\xls}^2 \quad \text{since }\norm{\br} \leq \sigma_{\max} \norm{\xls} \\
+									&   \leq \alpha^{k^*} (1 + 2\cond{\matA})\norm{\xls}^2.
+\end{align*}
+To derive the last inequality, consider two cases. If $T$ is even, set $k=k^*$, otherwise set $k=k^*+1$. In both cases, $(\alpha^{k}+\alpha^{k^*}) \leq 2\alpha^{k^*}$.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Theoretical bounds on time complexity}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+In this section, we discuss the running time complexity of the randomized extended Kaczmarz (Algorithm~\ref{alg:REK}). Recall that REK is a Las-Vegas randomized algorithm, i.e., the algorithm always outputs an ``approximately correct'' least squares estimate (satisfying~\eqref{REK:forwardErr}) but its runnning time is a random variable. Given any fixed accuracy parameter $\eps>0$ and any fixed failure probability $0<\delta<1$ we bound the number of iterations required by the algorithm to terminate with probability at least $1-\delta$.
+\begin{lemma}\label{lem:runtime}
+Fix an accuracy parameter $0<\eps<2$ and failure probability $0<\delta<1$. In exact arithmetic, Algorithm~\ref{alg:REK} terminates after at most
+	\[T^*:=2\kappaFS(\matA) \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)\]
+iterations with probability at least $1-\delta$.
+\end{lemma}
+\begin{proof}
+	Denote $\alpha := 1 - 1/ \kappaFS(\matA)$ for notational convenience. It suffices to prove that with probability at least $1-\delta$ the conditions of Step~\ref{alg:stopping} of Algorithm~\ref{alg:REK} are met. Instead of proving this, we will show that:
+\begin{enumerate}
+	\item With probability at least $1-\delta/2$: $\norm{(\b - \z^{(T^*)}) - \br} \leq \eps\norm{\br} / 4$.
+	\item With probability at least $1-\delta/2$: $\norm{\x^{(T^*)}-\xls} \leq \eps \norm{\xls}/4$.
+\end{enumerate}
+Later we prove that Items (1) and (2) imply the Lemma. First we prove Item (1). By the definition of the algorithm,
+\begin{align*}
+	\Prob{ \norm{ (\b - \z^{(T^*)}) - \br } \geq \eps\norm{\br} / 4} & =  \Prob{ \norm{\bc - \z^{(T^*)}  }^2 \geq \eps^2\norm{\br}^2/16} \\
+																	& \leq  \frac{16 \EE \norm{  \z^{(T^*)} - \bc }^2}{\eps^2\norm{\br}^2} \\
+																	& \leq  16\alpha^{T^*}/\eps^2  \leq \delta/2
+\end{align*}
+the first equality follows since $\b -\br = \bc$, the second inequality is Markov's inequality, the third inequality follows by Theorem~\ref{thm:randOP}, and the last inequality since $T^*\geq \kappaFS(\matA) \ln(\frac{32}{\delta \eps^2})$.
+
+Now, we prove Item (2):
+\begin{align*}
+		\Prob{ \norm{\x^{(T^*)}-\xls} \leq \eps\norm{\xls}/4} & \leq  \frac{ 16\EE \norm{\x^{(T^*)}-\xls}^2 }{\eps^2\norm{\xls}^2} \\
+																					& \leq  16\alpha^{\lfloor T^*/2\rfloor} (1+2\cond{\matA})/ \eps^2  \leq \delta/2.
+\end{align*}
+the first inequality is Markov's inequality, the second inequality follows by Theorem~\ref{thm:REK}, and the last inequality follows provided that $T^* \geq 2\kappaFS(\matA) \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)$
+%
+
+%
+A union bound on the complement of the above two events (Item (1) and (2)) implies that both events happen with probability at least $1-\delta$. Now we show that conditioning on Items (1) and (2), it follows that REK terminates after $T^*$ iterations, i.e.,
+\[ \norm{\matA \x^{(T^*)} - (\b - \z^{(T^*)}) } \leq \eps \frobnorm{\matA}\norm{\x^{(T^*)}}\quad \text{and}\quad \frac{\norm{\matA^\top \z^{(k)}}}{\frobnorm{\matA}^2\norm{\x^{(k)}}} \leq \eps.\]
+We start with the first condition. First, using triangle inequality and Item 2, it follows that
+\begin{equation}\label{ineq:xlsxk}
+\norm{\x^{(T^*)}} \geq  \norm{\xls} - \norm{\xls-\x^{(T^*)}}  \geq (1 - \eps/4 ) \norm{\xls}.
+\end{equation}
+Now,
+\begin{align*}
+	\norm{\matA \x^{(T^*)} - (\b - \z^{(T^*)}) } & \leq \norm{\matA \x^{(T^*)} - \br} + \norm{ (\b - \z^{(T^*)}) - \br } \\
+	 											 & \leq \norm{\matA (\x^{(T^*)} - \xls)} + \eps \norm{\br} / 4 \\
+		 										 & \leq \sigma_{\max} \norm{\x^{(T^*)} - \xls} + \eps \norm{\matA\xls} / 4 \\
+												 & \leq \eps \sigma_{\max} \norm{\xls} /2 \\
+												 & \leq \frac{\eps/2}{1- \eps/4} \norm{\x^{(T^*)}} \leq \eps \norm{\x^{(T^*)}}
+\end{align*}
+where the first inequality is triangle inequality, the second inequality follows by Item $1$ and $\br =\matA\xls$, the third and forth inequality follows by Item $2$ and the fifth inequality holds by Inequality~\eqref{ineq:xlsxk} and the last inequality follows since $\eps < 2$.
+The second condition follows since
+\begin{align*}
+	\norm{\matA^\top \z^{(T^*)}} & = \norm{\matA^\top (\bc - \z^{(T^*)})}  \leq \sigma_{\max} \norm{\bc - \z^{(T^*)}} \\
+								 & \leq \eps \sigma_{\max} \norm{\br}/4  \leq \eps \sigma^2_{\max} \norm{\xls}/4 \\
+								 & \leq \frac{\eps/4}{1-\eps /4} \sigma^2_{\max} \norm{\x^{(T^*)} } \leq \eps \frobnorm{\matA}^2 \norm{\x^{(T^*)} }.
+\end{align*}
+the first equation follows by orthogonality, the second inequality assuming Item (2), the third inequality follows since $\br=\matA\xls$, the forth inequality follows by~\eqref{ineq:xlsxk} and the final inequality since $\eps <2$.
+\end{proof}
+
+Lemma~\ref{lem:runtime} bounds the number of iterations with probability at least $1-\delta$, next we bound the total number of arithmetic operations in worst case~(Eqn.~\eqref{eq:runtime:det}) and in expectation~(Eqn.~\eqref{eq:runtime:rand}). Let's calculate the computational cost of REK in terms of floating-point operations (flops) per iteration. For the sake of simplicity, we ignore the additional (negligible) computational overhead required to perform the sampling operations (see Section~\cite{REK} for more details) and checking for convergence.
+
+Each iteration of Algorithm~\ref{alg:REK} requires four level-1 BLAS operations (two \emph{DDOT} operations of size $m$ and $n$, respectively, and two \emph{DAXPY} operations of size $n$ and $m$, respectively) and additional four flops. In total, $4(m+n)+2$ flops per iteration.
+%
+
+%
+Therefore by Lemma~\ref{lem:runtime}, with probability at least $1-\delta$, REK requires at most
+\begin{equation}\label{eq:runtime:det}
+5 (m +n ) \cdot T^* \leq  10 (m+n) \rank{\matA}  \cond{\matA} \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)
+\end{equation}
+arithmetic operations (using that $\kappaFS(\matA) \leq \rank{\matA} \cond{\matA}$).
+%
+
+%
+Next, we bound the \emph{expected running time} of REK for achieving the above guarantees for any fixed $\eps$ and $\delta$. Obviously, the expected running time is at most the quantity in~\eqref{eq:runtime:det}. However, as we will see shortly the expected running time is proportional to $\nnz{\matA}$ instead of $(m+n)\rank{\matA}$.
+
+Exploiting the (possible) sparsity of $\matA$, we first show that each iteration of Algorithm~\ref{alg:REK} requires at most $5(\cavg + \ravg)$ operations in expectation. For simplicity of presentation, we assume that we have stored $\matA$ in compressed column sparse format \emph{and} compressed row sparse format~\cite{book:templates}.
+
+Indeed, fix any $i_k\in{[m]}$ and $j_k\in{[n]}$ at some iteration $k$ of Algorithm~\ref{alg:REK}. Since $\matA$ is both stored in compressed column and compressed sparse format, Steps $7$ and Step $8$ can be implemented in $5 \nnz{\ac{j_k}}$ and 5$\nnz{\ar{i_k}}$, respectively.
+
+By the linearity of expectation and the definitions of $\cavg$ and $\ravg$, the expected running time after $T^*$ iterations is at most $5T^* (\cavg + \ravg)$. It holds that (recall that $p_j = \norm{\ac{j}}^2/\frobnorm{\matA}^2$)
+\begin{align*}
+	\cavg T^* & =  \frac{2}{\frobnorm{\matA}^2}\left(\sum_{j=1}^{n} \norm{\ac{j}}^2 \nnz{\ac{j}}\right)\frac{\frobnorm{\matA}^2}{\sigma_{\min}^2}\ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)\\
+			  & =  2\frac{\sum_{j=1}^{n} \norm{\ac{j}}^2 \nnz{\ac{j}}}{\sigma_{\min}^2}\ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)\\
+			  & \leq 2\sum_{j=1}^{n}\nnz{\ac{j}}\frac{\max_{j\in{[n]}} \norm{\ac{j}}^2}{\sigma_{\min}^2} \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)\\
+			& \leq 2\nnz{\matA}\cond{\matA} \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)
+\end{align*}
+using the definition of $\cavg$ and $T^*$ in the first equality and the fact that $\max_{j\in{[n]}} \norm{\ac{j}}^2 \leq \sigma_{\max}^2$ and $\sum_{j=1}^{n}\nnz{\ac{j}} = \nnz{\matA}$ in the first and second inequality. A similar argument shows that $\ravg T^* \leq 2\nnz{\matA} \cond{\matA} \ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right)$ using the inequality $\max_{i\in{[m]}} \norm{\ar{i}}^2 \leq \sigma_{\max}^2$.
+%
+
+%
+Hence by Lemma~\ref{lem:runtime}, with probability at least $1-\delta$, the expected number of arithmetic operations of REK is at most
+\begin{equation}\label{eq:runtime:rand}
+ 20 \nnz{\matA} \cond{\matA}\ln \left(\frac{32(1+2\cond{\matA})}{\delta\eps^2}\right).
+\end{equation}
+In other words, the expected running time analysis is much tighter than the worst case displayed in Equation~\eqref{eq:runtime:det} and is proportional to $\nnz{\matA}$ times the square condition number of $\matA$.
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Fast Isotropic Sparsification}\label{sec:fast_isotrop_sparse}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A set of $n$-dimensional vectors $\x_1,\x_2, \ldots , \x_m$ is in \emph{isotropic position} if $\sum_{i=1}^{m} \x_i\otimes \x_i $ equals to the identity matrix. Let $\matA$ be then $m\times n$ matrix with $m\gg n$ whose row set consists of $\{\x_1,\x_2,\ldots ,\x_m\}$. Given $0 <\eps < 1$ and $\matA$, the isotropic sparsification problem is the problem of selecting a small subset of rows of $\matA$ that (after rescaling) their sum of outer products spectrally approximates the identity matrix within $\eps$ in the operator norm.
+%
+
+%
+The matrix Bernstein inequality (see~\cite{chernoff:matrix_valued:Tropp}) tells us that there exists such a set with size $\OO(n\log n /\eps^2)$. Indeed, set $f(i)=\ac{i} \otimes \ac{i} / p_i - \Id_n$ where $p_i = \norm{\ac{i}}^2 / \frobnorm{\matA}^2$. A calculation shows that $\gamma$ and $\rho^2$ are $\OO(n)$. Moreover, Algorithm~\ref{alg:matrix:hyperbolic} implies an $\OO(mn^4 \log n /\eps^2)$ time algorithm for finding such a set. The running time of Algorithm~\ref{alg:matrix:hyperbolic} for rank-one matrix samples can be improved to $\OO(mn^3 \polylog{n} /\eps^2)$ by exploiting their rank-one structure. More precisely, using fast algorithms for computing all the eigenvalues of matrices after rank-one updates~\cite{Gu:update}. Next we show that we can further improve the running time by a more careful analysis.
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\vspace*{-3.5ex}
+\begin{algorithm}{}
+	\caption{Fast Isotropic Sparsification}\label{alg:fast:isotrop}
+\begin{algorithmic}[1]
+\Procedure{Isotrop}{$\matA$, $\eps$} \Comment{$\matA\in{\reals^{m\times n}}$, $\sum_{k=1}^{m} \ac{k} \otimes \ac{k} = \Id_n$ and $0 < \eps <1$}
+\State Set $\theta = \eps / n $, $t=\OO( n \ln n/\eps^2)$, and $\ac{k} \leftarrow \ac{k}/\sqrt{p_k}$ for every $k\in{[m]}$, where $p_k=\norm{\ac{k} }^2/n$
+%\State Compute $w_+ = \e^{-\theta} (1+\frac{\e^{\theta n} -1}{n} )$ and $w_- = \e^{\theta} (1-\frac{1 - \e^{-\lambda n}}{n})$
+\State Set $\Lambda_{\{0\}} = \zeromtx_n$ and $\matZ = \sqrt{\theta}\ \matA$
+\For {$i=1$ to $t$}
+%	\State Set $w_i^+ = (w_{+})^{t-i} \e^{-\theta i}$ and $w_i^{-} = (w_{-})^{t-i}\e^{\theta i}$
+	\State $x_i^* = \argmin_{k\in{[m]}}{\trace{\expm{ \Lambda_{\{i - 1\}} + \matZ_{(k)} \otimes \matZ_{(k)} }\e^{-\theta i}  + \expm{- \Lambda_{\{i - 1\}} - \matZ_{(k)} \otimes \matZ_{(k)} }\e^{\theta i}  }    } $ \Comment{Apply $m$ times Lemma~\ref{lem:comp_eigs}}
+	\State $[\Lambda_{\{i\}}, U_{\{i\}}] = \textbf{eigs} ( \Lambda_{\{i - 1\}} + \matZ_{(x_i^*)} \otimes \matZ_{(x_i^*)} )$ \Comment{\textbf{eigs} computes eigensystem}
+	\State $\matZ = \matZ  \matU_{\{i\}} $ \Comment{Apply fast matrix-vector multiplication }
+\EndFor
+\State \textbf{Output:} $t$ indices $x_1^*, x_2^*, \ldots ,x_t^*,\ x_i^* \in{[m]}$  s.t. $\norm{ \sum_{k=1}^{t} \frac{ \ac{x_k^*} \otimes \ac{x_k^*} }{ tp_{x_k^*}} - \Id_n } \leq \eps $
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%\vspace*{-4.0ex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+
+%
+We show how to improve the running time of Algorithm~\ref{alg:matrix:hyperbolic} to $\OO(\frac{mn^2}{\eps^2} \polylog{n, \frac1{\eps}})$ utilizing results from numerical linear algebra including the Fast Multipole Method~\cite{FMM:CGR} (FMM) and ideas from~\cite{Gu:update}. The main idea behind the improvement is that the trace is invariant under any change of basis. At each iteration, we perform a change of basis so that the matrix corresponding to the previous choices of the algorithm is diagonal. Now, Step $4$ of Algorithm~\ref{alg:matrix:hyperbolic} corresponds to computing all the eigenvalues of $m$ different eigensystems with special structure, i.e., diagonal plus a rank-one matrix. Such eigensystem can be solved in $\OO(n \polylog{n})$ time using the FMM as was observed in~\cite{Gu:update}. However, the problem now, is that at each iteration we have to represent all the vectors $\ac{i}$ in the new basis, which may cost $\OO(mn^2)$. The key observation is that the change of basis matrix at each iteration is a Cauchy matrix (see Appendix). It is known that matrix-vector multiplication with Cauchy matrices can be performed efficiently and numerically stable using FMM. Therefore, at each iteration, we can perform the change of basis in $\OO(mn\polylog{n})$ and $m$ eigenvalue computations in $\OO(mn\polylog{n})$ time. The next theorem states that the resulting algorithm (Algorithm~\ref{alg:fast:isotrop}) runs in $\OO(mn^2 \polylog{n})$ time. We need the following technical lemma, before stating the theorem.
+%
+%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}\label{lem:technical_cosh}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Assume that the first $(i-1)$ indices, $i< t$ have been fixed by Algorithm~\ref{alg:fast:isotrop}. Let $\Phi_k^{(i)}$ be the value of the potential function when the index $k$ has been selected at the next iteration of the algorithm. Similarly, let $\widetilde{\Phi}_k^{(i)}$ be the (approximate) value of the potential function computed using Lemma~\ref{lem:comp_eigs} within an additive error $\delta>0$ for all eigenvalues. Then,
+\begin{align*}
+	\e^{-\delta} \Phi_k^{(i)} \leq \widetilde{\Phi}^{(i)}_k \leq  \e^{\delta} \Phi_k^{(i)}
+\end{align*}
+\end{lemma}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Let $\tau_1,\tau_2 , \ldots , \tau_n$ be the eigenvalues of $\Lambda_{\{i -1\}} + Z_{(k)} \otimes Z_{(k)}$. Let $\widetilde{\tau}_1, \widetilde{\tau}_2 ,\dots ,\widetilde{\tau}_n$ be the approximate eigenvalues of the latter matrix when computed via Lemma~\ref{lem:comp_eigs} within an additive error $\delta>0 $, i.e, $|\widetilde{\tau}_j - \tau_j| \leq \delta$ for all $j\in{[n]}$.
+
+First notice that, by Step $5$ of Algorithm~\ref{alg:fast:isotrop}, $\Phi_k^{(i)} = 2 \sum_{j=1}^{n} \cosh (\tau_j - \lambda i)$. Similarly, $\widetilde{\Phi}_k^{(i)}:= 2 \sum_{j=1}^{n} \cosh (\widetilde{\tau}_j - \lambda i)$. By the definition of the hyperbolic cosine, we get that
+\begin{align*}
+	\sum_{j=1}^{n} \cosh (\widetilde{\tau}_j - \lambda i )   & =  \sum_{j=1}^{n} \cosh (\tau_j - \lambda i  + \widetilde{\tau}_j - \tau_j )  \\
+	& = \frac1{2}\sum_{j=1}^{n} \left[\exp (\tau_j - \lambda i)\exp(\widetilde{\tau}_j - \tau_j ) + \exp (-\tau_j + \lambda i)\exp(-\widetilde{\tau}_j + \tau_j )\right].
+\end{align*}
+To derive the upper bound notice that $\sum_{j=1}^{n} \cosh (\widetilde{\tau}_j - \lambda i )  \leq  \sum_{j=1}^{n} \cosh (\tau_j - \lambda i) \max_{j\in{[n]}}\{ \exp(\widetilde{\tau}_j - \tau_j), \exp ( - \widetilde{\tau}_j + \tau_j) \}$
+and the maximum is upper bounded by $\exp(\delta)$. Similarly, for the lower bound.
+%we get that
+%\begin{align*}
+%\sum_{j=1}^{n} \cosh (\widetilde{\tau}_j - \lambda i ) & \geq & \sum_{j=1}^{n} \cosh (\tau_j - \lambda i) \min_{j\in{[n]}}\{ \exp(\widetilde{\tau}_j - \tau_j), \exp ( - %\widetilde{\tau}_j + \tau_j) \}
+%\end{align*}
+%and the minimum is lower bounded by $\exp(-\delta)$.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%
+%
+\begin{theorem}\label{thm:derand:isotrop:fast}
+Let $\matA$ be an $m\times n$ matrix with $\matA^\top \matA = \Id_n$, $m\geq n$ and $ 0 < \eps <1$. Algorithm~\ref{alg:fast:isotrop} returns at most $t=\OO(n  \ln n/\eps^2)$ indices $x_1^*,x_2^*,\ldots x_t^*$ over $[m]$ with corresponding scalars $s_1,s_2,\ldots ,s_t$ using $\widetilde{\OO}(mn^2 \log^3 n /\eps^2 )$ operations such that
+\begin{equation}\label{eq:main_thm:fast:main_eqn}
+	\norm{ \sum_{i=1}^{t} s_i \ac{x_i^*} \otimes \ac{x_i^*} - \Id_n} \leq \eps.
+\end{equation}
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:derand:isotrop:fast})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The proof consists of three steps: (\emph{a}) we show that Algorithm~\ref{alg:fast:isotrop} is a reformulation of Algorithm~\ref{alg:matrix:hyperbolic}; (\emph{b}) we prove that in Step $5$ of Algorithm~\ref{alg:fast:isotrop} it is enough to compute the values of the potential function within a sufficiently small multiplicative error using Lemma~\ref{lem:comp_eigs}, and (\emph{c}) we give the advertised bound on the running time of Algorithm~\ref{alg:fast:isotrop}.
+%
+
+%
+Set $p_i = \norm{\ac{i}}^2/\frobnorm{\matA}^2$, $f(i) = \ac{i}\otimes \ac{i}/p_i - \Id_n$ and $s_i=1/p_i$ for every $i\in{[m]}$. Observe that $\frobnorm{\matA}^2=\trace{\matA^\top \matA} = \trace{\Id_n} = n$. Let $X$ be a random variable distributed over $[m]$ with probability $p_i$. Notice that $\EE{f(X)} = \zeromtx_n$ and $\gamma = n $, since $\norm{f(i)} = \norm{n \ac{i}\otimes \ac{i}/\norm{\ac{i}}^2 - \Id_n } \leq n $ for every $i\in{[m]}$. Moreover, a direct calculation shows that $\EE{f(X)^2} = \EE{ (\ac{X} \otimes \ac{X}/p_X)^2} - \Id_n = n\sum_{i=1}^{m} \ac{i}\otimes \ac{i} - \Id_n = (n-1)\Id_n $, hence $\rho^2 \leq  n$. Algorithm~\ref{alg:matrix:hyperbolic} with $t=\OO(n\ln n /\eps^2)$ returns indices $x_1^*,x_2^*,\dots, x_t^*$ so that $\norm{\frac1{t} \sum_{j=1}^t f_j(x_j^*)} \leq \frac{\gamma \ln ( 2n)}{t \eps} + \eps \rho^2 /\gamma \leq 2\eps$. We next prove by induction that the same set of indices are also returned by Algorithm~\ref{alg:fast:isotrop}.
+%
+
+%
+For ease of presentation, rescale every row of the input matrix $\matA$, i.e., set $ \widehat{\matA}_{(k)} = \ac{k} \sqrt{ \theta / p_{k}}$ for every $k\in{[m]}$ (see Steps $2$ and $3$ of Algorithm~\ref{alg:fast:isotrop}). For sake of the analysis, let us define the following sequence of symmetric matrices of size $n$
+\begin{align*}
+\matT_{\{0\}} &:= \zeromtx_n,\\
+\matT_{\{i\}} &:=  \matT_{\{i - 1\}} + \widehat{\matA}_{(x_i^*)} \otimes \widehat{\matA}_{(x_i^*)}  \text{ for } i\in{[t]}
+\end{align*}
+with eigenvalue decompositions $\matT_{\{i\}} = \matQ_{\{i\}} \Lambda_{\{i\}} \matQ^\top_{\{i\}} $, where $\Lambda_{\{i\}}$ are diagonal matrices containing the eigenvalues and the columns of $\matQ_{\{i\}}$ contain the corresponding eigenvectors. Set $\matQ_{\{0\}}=\Id$ and $\Lambda_{\{0\}}=\zeromtx$.
+Notice that for every $k\in{[m]}$, by the eigenvalue decomposition of $\matT_{\{ i - 1\}}$, $\matT_{\{ i - 1\}} +  \widehat{\matA}_{(k)}\otimes \widehat{\matA}_{(k)} = \matQ_{\{i-1\}}\left(\Lambda_{\{i-1\}} + \matQ_{\{i-1\}}^\top \widehat{\matA}_{(k)} \otimes \matQ_{\{i-1\}}^\top \widehat{\matA}_{(k)}\right) \matQ_{\{i - 1\}}^\top.$ Observe that the above matrix (left hand side) and $\Lambda_{\{i-1\}} + \matQ_{\{i-1\}}^\top \widehat{\matA}_{(k)} \otimes \matQ_{\{i-1\}}^\top \widehat{\matA}_{(k)}$ have the same eigenvalues, since they are similar matrices. Let $\Lambda_{\{i-1\}} + \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)} \otimes \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)}  = \matU_{\{i\}} \Lambda_{\{i\}} \matU_{\{i\}}^\top$ be its eigenvalue decomposition\footnote{by its definition, $\matT_{\{i\}}$ has the same eigenvalues with $\Lambda_{\{i-1\}} + \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)} \otimes \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)}$.}. Then
+\begin{align*}
+\matT_{\{i - 1\}} + \widehat{\matA}_{(x_i^*)} \otimes \widehat{\matA}_{(x_i^*)} &  =  \matQ_{\{i-1\}}\left(\Lambda_{\{i-1\}} + \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)} \otimes \matQ_{\{i-1\}}^\top \widehat{\matA}_{(x_i^*)}\right) \matQ_{\{i - 1\}}^\top\\
+																				&  =  \matQ_{\{i-1\}}\matU_{\{i\}} \Lambda_{\{i\}} \matU_{\{i\}}^\top  \matQ_{\{i - 1\}}^\top.
+\end{align*}
+It follows that $\matQ_{\{i\}} = \matQ_{\{i-1\}} \matU_{\{i\}}$ for every $i\geq 1$, so $\matQ_{\{i\}} = \matU_{\{1\}} \matU_{\{2\}} \dots  \matU_{\{i\}}$. The base case of the induction is immediate. Now assume that Algorithm~\ref{alg:fast:isotrop} has returned the same indices as Algorithm~\ref{alg:matrix:hyperbolic} up to the $(i-1)$-th iteration. It suffices to prove that at the $i$-th iteration Algorithm~\ref{alg:fast:isotrop} will return the index $x_i^*$.
+%
+
+%
+We start with the expression in Step $4$ of Algorithm~\ref{alg:matrix:hyperbolic} and prove that it's equivalent (up to a fixed multiplicative constant factor) with the expression in Step $5$ of Algorithm~\ref{alg:fast:isotrop}. Indeed, for any $k\in{[m]}$, (let $\matC := \theta\sum_{j=1}^{i-1} f(x_j^*)$)
+\begin{align*}
+&2\trace{\coshm{ \matC + \theta f(k) }}  =  \trace{\expm{ \matC  + \theta f(k) } + \expm{-\matC - \theta f(k) }}  \\
+																  & = \trace{\expm{ \matT_{\{i-1\}} + \widehat{\matA}_{(k)}\otimes \widehat{\matA}_{(k)} - \theta i \Id } + \expm{- \matT_{\{i-1\}} - \widehat{\matA}_{(k)}\otimes \widehat{\matA}_{(k)} + \theta i \Id}}  \\
+																   &= \trace{\expm{ \matT_{\{i-1\}} + \widehat{\matA}_{(k)}\otimes \widehat{\matA}_{(k)} }\e^{- \theta i} + \expm{- \matT_{\{i-1\}} - \widehat{\matA}_{(k)}\otimes \widehat{\matA}_{(k)} }\e^{ \theta i}}
+\end{align*}
+where we used the definition of $\coshm{\cdot}$, $f(i)$ and $\matT_{\{i-1\}}$ and the fact that the matrices commute. In light of Algorithm~\ref{alg:fast:isotrop} and the induction hypothesis, observe that the $m\times n$ matrix $\matZ$ at the start of the $i$-th iteration of Algorithm~\ref{alg:fast:isotrop} is equal to $\widehat{\matA} \matU_{\{1\}} \matU_{\{2\}} \ldots \matU_{\{i -1 \}}=  \widehat{\matA} \matQ_{\{i - 1\}}$. Now, multiply the latter expression that appears inside the trace with $\matQ_{\{i-1\}}^\top $ from the left and $\matQ_{\{i-1\}}$ from the right, it follows that (let $\matC := \theta\sum_{j=1}^{i-1} f(x_j^*)$)
+\begin{align*}
+	2\trace{\coshm{ \matC + \theta f(k) }}  =  \trace{\expm{ \Lambda_{\{i-1\}} + \matZ_{(k)}\otimes \matZ_{(k)} }\e^{- \theta  i} + \expm{- \Lambda_{\{i-1\}} - \matZ_{(k)}\otimes \matZ_{(k)} }\e^{ \theta i}}
+\end{align*}
+using that $\matQ_{\{i-1\}}$ are the eigenvectors of $\matT_{\{i - 1\}}$ and the cyclic property of trace. This concludes part (\emph{a}).
+%
+
+%
+Next we discuss how to deal with the technicality that arises from the approximate computation of the $\argmin$ expression in Step $5$ of Algorithm~\ref{alg:fast:isotrop}. First, let's assume that we have approximately (by invoking Lemma~\ref{lem:comp_eigs}) minimized the potential function in Step $5$ of Algorithm~\ref{alg:fast:isotrop}; denote this sequence of potential function values by  $\widetilde{\Phi}^{(1)},\ldots , \widetilde{\Phi}^{(t)}$. Next, we sufficiently bound the parameter $b$ of Lemma~\ref{lem:comp_eigs} so that the above approximation will not incur a significant multiplicative error.
+%
+
+%
+Recall that at every iteration, by Ineq.~\eqref{ineq:barrier_incr} there exists an index over $[m]$ such that the current value of the potential function increases by at most a multiplicative factor $\exp\left( \eps^2 \rho^2 / \gamma^2\right)$. Lemma~\ref{lem:technical_cosh} tells us that at every iteration of Algorithm~\ref{alg:fast:isotrop} we increase the value of the potential function (by not selecting the optimal index over $[m]$) by at most an \emph{extra} multiplicative factor $\e^{2\delta}$, where $\delta$ is the additive error when computing the eigenvalues of the matrix in Step $5$ via Lemma~\ref{lem:comp_eigs}. Therefore, it follows that $\widetilde{\Phi}^{(t)} \leq \exp( 2\delta t) \Phi^{(t)}.$
+%
+
+%
+Observe that, at the $i$-th iteration we apply Lemma\ref{lem:comp_eigs} on a matrix $\sum_{j=1}^{i} \widehat{\matA}_{(x_j)} \otimes \widehat{\matA}_{(x_j)}$ for some indices $x_j\in{[m]}$ and moreover $\norm{\sum_{j=1}^{i}{ \widehat{\matA}_{(x_j)} \otimes \widehat{\matA}_{(x_j)}} } =  \norm{ \theta \sum_{j=1}^{i}{ \matA_{(x_j)} \otimes \matA_{(x_j)} / p_{x_j} } } =   \norm{\theta \sum_{j=1}^{i} f(x_j ) - \theta i \Id}$. Triangle inequality tells us that $\norm{ \sum_{j=1}^{i}{ \widehat{\matA}_{(x_j)} \otimes \widehat{\matA}_{(x_j)}} }$ is at most $2\gamma\theta t$ for every $i \in{[t]}$. It follows that $\delta$ is at most $2^{-b+1} \theta t \gamma$ where $b$ is specified in Lemma~\ref{lem:comp_eigs}. The above discussion suggests that by setting $b= \OO(\log( \theta \gamma t))=\OO(\log (n\log n /\eps^3))$ we can guarantee that the potential function $\widetilde{\Phi}^{(t)} \leq  2n \exp\left( 3t \eps^2 \right)$. This concludes part~(\emph{b}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+
+%
+Finally, we conclude the proof by analyzing the running time of Algorithm~\ref{alg:fast:isotrop}. Steps $2$ and $3$ can be done in $\OO(mn)$ time. Step $5$ requires $\widetilde{\OO}(mn\log^2 n )$ operations by invoking $m$ times Lemma~\ref{lem:comp_eigs}. Steps $6$ can be done in $\OO(n^2)$ time and Step $7$ requires $\widetilde{\OO}(mn\log^2 n )$ operations by invoking Lemma~\ref{lem:fast_mm:gerasoulis}. In total, since the number of iterations is $\OO(n\log n /\eps^2)$, the algorithm requires $\widetilde{\OO}( mn^2 \log^3 n /\eps^2)$ operations.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Spectral Sparsification}\label{sec:sparsif:psd}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here, we show that Algorithm~\ref{alg:fast:isotrop} can be used as a bootstrapping procedure to improve the time complexity of~\cite[Theorem~3.1]{phdthesis:Srivastava:2010}, see also~\cite[Theorem~$3.1$]{graph:sparsifiers:twice_ram}. Such an improvement implies faster algorithms for constructing graph spectral sparsifiers,,as we will see in \S~\ref{sec::graph_sparsifiers}, and element-wise sparsification of matrices,as we will see in \S~\ref{sec:sparsification:matrix}.
+\begin{theorem}\label{thm:sparsification:here}
+Suppose $0 < \eps < 1$ and $\matA = \sum_{i=1}^{m} \v_i \otimes \v_i $ are given, with column vectors $\v_i\in\reals^n $ and $m\geq n$. Then there are non-negative weights $\{s_i\}_{i\leq m}$, at most $ \lceil n/\eps^2 \rceil$ of which are non-zero, such that
+\begin{equation}
+	(1-\eps)^3 \matA \preceq \widetilde{\matA} \preceq (1+\eps)^3 \matA,
+\end{equation}
+where $\widetilde{\matA} = \sum_{i=1}^{m}s_i \v_i \otimes \v_i$. Moreover, there is an algorithm that computes the weights $\{s_i\}_{i\leq m}$ in deterministic $\widetilde{\OO}(mn^2 \log^3 n  /\eps^2 + n^4 \log n /\eps^4)$ time.
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:sparsification:here})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Assume without loss of generality that $\matA$ has full rank. Define $\u_i = \matA^{-1/2}\v_i$ and notice that $\sum_{i=1}^{m} \u_i \otimes \u_i =\Id_n$. Run Algorithm~\ref{alg:fast:isotrop} with input $\{\u_i\}_{i\in{[m]}}$ and $\eps$ which returns $\{\tau_i\}_{i\leq m}$, at most $t=\OO(n\log n /\eps^2)$ of which are non-zero such that
+\begin{equation}\label{eqn:spectral_sparse:inner}
+\norm{\sum_{i=1}^{m} \tau_i \u_i \otimes \u_i - \Id_n } \leq \eps.
+\end{equation}
+Define $\widehat{\matA} = \matA^{1/2}\left(\sum_{i=1}^{m}\tau_i \u_i \otimes \u_i\right) \matA^{1/2} = \sum_{i=1}^{m}\tau_i \v_i\otimes \v_i$. Eqn.~\eqref{eqn:spectral_sparse:inner} is equivalent to $(1-\eps) \Id_n \preceq \sum_{i=1}^{m} \tau_i \u_i\otimes \u_i \preceq (1+\eps) \Id_n$. Conjugating the latter expression by $\matA^{1/2}$ (Lemma~\ref{lem:pert3}), we get that $ (1-\eps) \matA \preceq \widehat{\matA} \preceq (1+\eps) \matA.$ Apply~\cite[Theorem~3.1]{phdthesis:Srivastava:2010} on $\widehat{\matA}$ which outputs a matrix $\widetilde{\matA}=\sum_{i=1}^{m}s_i \v_i\otimes \v_i$ with non-negative weights $\{s_i\}_{i\in{[m]}}$ at most $\lceil n /\eps^2 \rceil$ of which are non-zero, such that $ (1-\eps)^2 \widehat{\matA} \preceq \widetilde{\matA} \preceq (1+\eps)^2 \widehat{\matA}.$ Using the positive semi-definite partial ordering, we conclude that $(1-\eps)^3 \matA \preceq \widetilde{\matA} \preceq (1+\eps)^3 \matA$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+
+
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Element-wise Matrix Sparsification}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Element-wise matrix sparsification was pioneered by Achlioptas and McSherry~\cite{matrix:sparsification:AM01,matrix:sparsification:optas}. The authors of~\cite{matrix:sparsification:optas} described sampling-based algorithms to select a small number of elements from an input matrix $\matA \in \RR^{n \times n}$ in order to construct a sparse sketch $\widetilde{\matA} \in \RR^{n \times n}$, which is close to $\matA$ in the operator norm. Such sketches were used in approximate eigenvector computations~\cite{matrix:sparsification:AM01,matrix:sparsification:arora,matrix:sparsification:optas}, semi-definite programming solvers~\cite{fast_SDP:AHK05,Asp09}, and matrix completion problems~\cite{CR09,CT09}. Motivated by their work, we present a simple matrix sparsification algorithm that achieves the best known upper bounds for element-wise matrix sparsification. Moreover, we present the first deterministic element-wise sparsification algorithm by derandomizing the result of Section~\ref{sec:msparse:conc} using the matrix hyperbolic cosine algorithm. Last but not least, we derive strong sparsification bounds for symmetric matrices that have an approximate diagonally dominant\footnote{A symmetric matrix $\matA$ of size $n$ is called \emph{diagonally dominant} if $|\Ae{ii}| \geq \sum_{j\neq i} |\Ae{ij}|$ for every $i\in{[n]}$.} property. Diagonally dominant matrices arise in many applications such as the solution of certain elliptic differential equations via the finite element method~\cite{SDD:Vavasis}, several optimization problems in computer vision~\cite{SDD:vision:Koutis} and computer graphics~\cite{SDD:graphics:Joshi}, to name a few.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Sparsification via Matrix Concentration}\label{sec:msparse:conc}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The main algorithm (Algorithm~\ref{alg:msparse:IPL}) zeroes out ``small'' elements of $\matA$ and randomly samples the remaining elements of $\matA$ with respect to a probability distribution that favors ``larger'' entries.
+%
+\begin{algorithm}{}
+\centerline{\caption{Matrix Sparsification Algorithm}\label{alg:msparse:IPL}}
+\begin{algorithmic}[1]
+%--------------------------------------------------
+% Step 1
+%--------------------------------------------------
+\State \underline{\textbf{Input:}} $\matA \in \RR^{n \times n}$, accuracy parameter $\epsilon >0$.
+%--------------------------------------------------
+% Step 2
+%--------------------------------------------------
+\State \textbf{Let} $\widehat{\matA} = \matA$ and \textbf{zero-out} all entries of $\widehat{\matA}$ that are smaller (in absolute value) than $\epsilon/2n$.
+%--------------------------------------------------
+% Step 3
+%--------------------------------------------------
+\State \textbf{Set} $s$ as in Eqn.~\eqref{eqn:sfinal}.
+%--------------------------------------------------
+% Step 4
+%--------------------------------------------------
+\State \textbf{For} $t = 1\ldots s$ (i.i.d. trials with replacement) \textbf{randomly sample} indices $(i_t, j_t) $ (entries of $\widehat{\matA}$), with
+%
+\[\Prob{ (i_t, j_t) =  (i,j)}\ =\ p_{ij}, \quad \mbox{where }p_{ij}:=\widehat{\matA}_{ij}^2/\frobnorm{\widehat{\matA}}^2 \mbox{for all } (i,j) \in [n]\times[n].\]
+%
+%--------------------------------------------------
+%--------------------------------------------------
+% Output
+%--------------------------------------------------
+\State \underline{\textbf{Output:}} \[\widetilde{\matA} = \frac{1}{s}\sum_{t=1}^s \frac{\widehat{\matA}_{i_t j_t}}{p_{i_t j_t}} \e_{i_t} \e_{j_t}^\top \in \RR^{n \times n}.\]
+\end{algorithmic}
+\end{algorithm}
+%
+Our sampling procedure selects $s$ entries from $\matA$ (note that $\widehat{\matA}$ from the description of Algorithm~\ref{alg:msparse:IPL} is simply $\matA$, but with elements less than or equal to $\epsilon/(2n)$ zeroed out) in $s$ independent, identically distributed (i.i.d.) trials with replacement. In each trial, elements of $\matA$ are retained with probability proportional to their squared magnitude. Note that the same element of $\matA$ could be selected multiple times and that $\widetilde{\matA}$ contains at most $s$ non-zero entries. Theorem~\ref{thm::msparse:IPL} is our main quality-of-approximation result for Algorithm~\ref{alg:msparse:IPL} and achieves sparsity bounds proportional to $\frobnorm{\matA}^2$.
+%
+%
+\begin{theorem} \label{thm::msparse:IPL}
+%
+Let $\matA \in \R ^{n \times n}$ be any matrix, let $\epsilon >0 $ be an accuracy parameter, and let $\widetilde{\matA}$ be the sparse sketch of $\matA$ constructed via Algorithm~\ref{alg:msparse:IPL}. If
+%
+\begin{equation}\label{eqn:sfinal}
+%
+s = \frac{28n \ln\left(\sqrt{2}n\right)}{\epsilon^{2}}\frobnorm{\matA}^2,
+%
+\end{equation}
+%
+then, with probability at least $1-n^{-1}$,
+$$
+\norm{\matA - \widetilde{\matA}} \leq \epsilon.
+$$
+$\widetilde{\matA}$ has at most $s$ non-zero entries and the construction of $\widetilde{\matA}$ can be implemented in one pass over the input matrix $\matA$ (see Section~\ref{sxn:onepass}).
+%
+\end{theorem}
+%
+We conclude this section with Corollary~\ref{cor:relativeerror}, which is a re-statement of Theorem~\ref{thm::msparse:IPL} involving the \emph{stable rank} of $\matA$, denoted by $\sr{\matA}$ (recall that the stable rank of any matrix $\matA$ is defined as the ratio $\sr{\matA} := \frobnorm{A}^2/\norm{\matA}^2$, which is upper bounded by the rank of $\matA$). The corollary guarantees relative error approximations for matrices of -- say -- constant stable rank, such as the ones that arise in~\cite{recht:simple_completion,CT09}.
+%
+\begin{corollary}\label{cor:relativeerror}
+%
+Let $\matA \in \R ^{n \times n}$ be any matrix and let $\varepsilon >0 $ be an accuracy parameter. Let $\widetilde{\matA}$ be the sparse sketch of $\matA$ constructed via Algorithm~\ref{alg:msparse:IPL} (with $\epsilon = \varepsilon\norm{\matA}$). If
+%
+$s = 28n\sr{\matA} \ln\left(\sqrt{2}n\right) / \varepsilon^{2},$
+%
+then, with probability at least $1-n^{-1}$,
+\[
+\norm{\matA - \widetilde{\matA}} \leq \varepsilon\norm{\matA}.
+\]
+%
+\end{corollary}
+%
+It is worth noting that the sampling algorithm implied by Corollary~\ref{cor:relativeerror} can not be implemented in one pass, since we would need a priori knowledge of the spectral norm of $\matA$ in order to implement Step $2$ of Algorithm~\ref{alg:msparse:IPL}.
+%
+%\clearpage
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\begin{center}
+\begin{table}[ht]
+	\small
+\centering
+    \begin{tabular}{ || c | c | c | c | c ||}
+	\hline
+    \multicolumn{5}{|c|}{} \\
+	\multicolumn{5}{|c|}{\underline{\textbf{Randomized Element-wise Matrix Sparsification}}} \\
+    \multicolumn{5}{|c|}{} \\
+	\hline\hline
+	\multirow{2}{*}{} & & & & \\
+	\textbf{Sparsity of $\widetilde{\matA}$} &  & \textbf{Failure}  & \textbf{Citation}   & \textbf{Comments} \\
+	 &  & \textbf{Probability}  & & \\
+	\hline
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+%	\multirow{2}{*}{} & & & & \\
+	    & & & & $\eps > 4 \sqrt{n}\cdot b$  \\
+	$16 n \frobnorm{\matA}^2 / \eps^2  + 8^4 n\log^4 n$    & {\footnotesize Expected} & $e^{-19\log^4 n}$ &   \cite{matrix:sparsification:optas}  & $n\geq 700\cdot 10^6$ \\
+
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+% The above row has been completed using the following references.
+%
+% Using LEMMA 4.1 from [matrix:sparsification:optas] for comparison :
+% SET m = n , s = 16 n \frobnorm{A}^2 / \eps^2
+%
+% Sparsity of \tilde{A} : Lemma 4.1 of [matrix:sparsification:optas]. Set s in Bullet (2) such that Bullet (1) gives error eps!
+% Failure Probability   : Theorem 1.5 or Lemma 4.1 of [matrix:sparsification:optas].
+% Comment 		: Theorem 1.5 Bullet (1), notice the p <= 1, hence we can only derive bound of order 4 b \sqrt{n}.
+%
+%  c_3 is THE constant of Latala's paper (see Theorem 5 of [Gmatrix:sparsification:Tropp])
+%--------------------------------------------------
+%--------------------------------------------------
+% Also from THEOREM 1.5 of [matrix:sparsification:optas] notice that p should be smaller than 1!! Therefore, the result of [matrix:sparsification:optas] apply only when eps > 4 \sqrt{n} ||A||_{1->\infty}.
+%
+%--------------------------------------------------
+%--------------------------------------------------
+ 	& & & & $n\geq 1$\\
+	$R\cdot b \cdot n \frobnorm{\matA}^2 /\eps^2$   & {\footnotesize Expected} & $e^{-\Omega(R\cdot n ) }$ &   \cite{matrix:sparsification:Tropp}  & $\eps > c_1\sqrt{n\cdot R} \cdot b$ \\
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+% The above row has been completed using the following references.
+%
+% Sparsity of \tilde{A} : Page 15 (Second Equation p nm Avg (a_{ij}^2 /b)) of [matrix:sparsification:Tropp].
+% To see this result, we have to combine the first two equation of Page 15.
+%
+% First assume that 2C ( 2+ sqrt{R}) b sqrt{n/p} := \eps from the first equation. Solving for b we get b ~= eps sqrt{p/(n R)} .
+% By plugging this value into the second equation of Page 15, we get that
+%
+% p nm Avg (a_{ij}^2 /b) = p ||A||_F^2 / b^2 = p ||A||_F^2 / (eps^2 p / (n R)) ~= n R ||A||_F^2 / eps^2
+%
+%
+% Failure Probability   : Page 15 (First line) of [matrix:sparsification:Tropp].
+% Comment         : Page 15 (Second line) of [matrix:sparsification:Tropp], notice the p <= 1 in the second line.
+%
+%  c_3 is THE constant of Latala's paper (see Theorem 5 of [matrix:sparsification:Tropp])
+%--------------------------------------------------
+	& & & & $c_2 \leq 45^2$ \\
+	$c_2 n \log^2 \left(\frac{n}{\log^2 n}\right)\log n \frobnorm{\matA}^2/\eps^2$  & {\footnotesize Expected}  & $1/n$ &   \cite{drineas:sparsification_via_khintchine}  & $\eps>0,\ n\geq 300$, \\
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+	& & & & $\eps>0,\ n\geq 300$ \\
+	% See Theorem~$1$
+	$c_3 n \log^3 n \frobnorm{\matA}^2/\eps^2$   & {\footnotesize Expected} & $1/n$ &   \cite{drineas:tensor_sparsification}  & {\footnotesize Extends to tensors}\\
+ 	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+    	\multirow{1}{*}{} & & & & \\
+	$c_4 \sqrt{n}\sum_{ij}|\matA_{ij}| / \eps $   & {\footnotesize Exact} & $e^{-\Omega(n)}$ &   \cite{matrix:sparsification:arora}  & $\eps >0$, $n\geq 1$\\
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+% Notes about AHK06 paper : The strongest result of [matrix:sparsification:AM01] is : With probability at least 1-1/n, we have that ||A - \widetilde{A} || < eps, Expected number \OO(n/eps^2 ||A||_F^2 + n) non-zero entries.
+% To Be precise : The failure probability is equal to : \min\{e^{-C_2'\frac{\sqrt{n} \sum_{ij}|A_{ij}|}{\eps}},e^{-\Omega(n)}\}
+%--------------------------------------------------
+%--------------------------------------------------
+	\multirow{2}{*}{} & & & & \\
+	$14n \ln\left(2n/\delta\right)\frobnorm{\matA}^2/ \eps^{2}$ & {\footnotesize Exact} & $\delta$ &  Thm~\ref{thm::msparse:IPL}  & $\eps>0,\ n\geq 1$\\
+	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+%--------------------------------------------------
+%--------------------------------------------------
+%	\multirow{2}{*}{} & & & & \\
+%	$\OO\left(\sum_{ij}|\matA_{ij}| \log\left(\frac{\sum_{ij}|\matA_{ij}|}{\eps^{2}\delta}\right) \right)$ & {\footnotesize Exact} & $\delta$ &  Thm~\ref{thm:msparse:low}  & $0<\eps<1,\ n\geq 1$\\
+%	\hline
+%--------------------------------------------------
+%--------------------------------------------------
+%    \multirow{2}{*}{} & & & & \\
+%	$17\sqrt{n} \sqrt{\ln\left(\sqrt{2}n\right)}\sum_{ij}|A_{ij}| / \eps$ & (D) & $1/n$ &   {\small Theorem~\ref{thm::msparse:IPL:aroralike}}  & $\eps>0,\ n\geq 1$\\
+%& &       &                       & \\
+%\hline
+%--------------------------------------------------
+%--------------------------------------------------
+\end{tabular}
+
+\caption{\small Summary of prior results in element-wise matrix sparsification. The first column indicates the number of non-zero entries in $\widetilde{\matA}$, whereas the second column indicates whether this number is exact or simply holds in expectation. In terms of notation, we let $b$ denote the $\max_{i,j}|\matA_{ij}|$ and $R$ denote $\max_{ij} {|\matA_{ij}|} / \min_{\matA_{ij}\neq 0} |\matA_{ij}|$. Finally, $c_1,c_2,c_3,c_4$ denote unspecified positive constants.}\label{table:summary}
+\end{table}
+\end{center}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Related Work.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section (as well as in Table~\ref{table:summary}), we present a head-to-head comparison of our result (\cite{matrix:sparsification:IPL2011}) with all existing (to the best of our knowledge) bounds on randomized matrix sparsification. In~\cite{matrix:sparsification:AM01,matrix:sparsification:optas} the authors presented a sampling method that requires in \emph{expectation} $16 n \frobnorm{\matA}^2 / \eps^2  + 8^4 n\log^4 n$ non-zero entries in $\widetilde{\matA}$ in order to achieve an accuracy guarantee $\eps$ with a failure probability of at most $e^{-19\log^4 n}$. Compared with our result, their bound holds only when $\eps > 4\sqrt{n} \cdot \max_{i,j}\abs{\matA_{ij}}$ and, in this range, our bounds are superior when $\frobnorm{\matA}^2 / (\max_{i,j}\abs{\matA_{ij}})^2=o(n\log^3 n)$. It is worth mentioning that the constant involved in~\cite{matrix:sparsification:AM01,matrix:sparsification:optas} is two orders of magnitude larger than ours and more importantly their results hold only when $n\geq 700 \cdot 10^6$.
+%
+
+%
+In~\cite{matrix:sparsification:Tropp}, the authors study the $\|\cdot\|_{\infty \rightarrow 2}$ and $\|\cdot\|_{\infty \rightarrow 1}$ norms in the matrix sparsification context and they also present a sampling scheme analogous to ours. They achieve (in expectation) a sparsity bound of $R n\frobnorm{\matA}^2 \max_{i,j}\abs{\matA_{ij}}  /\eps^2$  when $\eps \geq \sqrt{nR}\max_{i,j} \abs{\matA_{ij}}$; here $R:=\max_{ij} {\abs{\matA_{ij}}} / \min_{\matA_{ij}\neq 0} \abs{\matA_{ij}}$. Thus, our results are superior (in the above range of $\eps$) when $R\cdot \max_{i,j} \abs{\matA_{ij}} =\omega( \log n)$.
+%
+
+%
+It is harder to compare our method to the work of~\cite{matrix:sparsification:arora}, which depends on the $\sum_{i,j=1}^n \abs{\matA_{ij}}$. The latter quantity is, in general, upper bounded only by $n \frobnorm{\matA}$, in which case the sampling complexity of~\cite{matrix:sparsification:arora} is much worse, namely $\OO(n^{3/2}\frobnorm{\matA}/\eps)$.
+%
+%However, our analysis is flexible enough to provide bounds that depend on $\sum_{i,j=1}^n \abs{A_{ij}}$ by a simple adjustment on Algorithm~\ref{alg:msparse:IPL}, see Theorem~\ref{thm::msparse:IPL:aroralike}. For comparison %purposes, we present a similar algorithm of our main algorithm (Algorithm~$3$) that achieves bounds weaker by a $\sqrt{\log n}$ factor with those of~\cite{matrix:sparsification:arora} (see Appendix).
+%
+Finally, the recent bounds on matrix sparsification via the non-commutative Khintchine's inequality in~\cite{drineas:sparsification_via_khintchine} are inferior compared to ours in terms of sparsity guarantees by at least $\OO(\ln^2 ( n /\ln^2 n))$. Nevertheless, we should mention that the bounds of~\cite{drineas:sparsification_via_khintchine} can be extended to multi-dimensional matrices (tensors), whereas our result does not generalize to this setting; see~\cite{drineas:tensor_sparsification} for details.
+%
+%
+\subsubsection{Background}
+%
+\paragraph{Implementing the Sampling in one Pass over the Input Matrix.}\label{sxn:onepass}
+%
+We now discuss the implementation of Algorithm~\ref{alg:msparse:IPL} in one pass over the input matrix $\matA$. Towards that end, we will leverage (a slightly modified version of) Algorithm \textsc{Select} (p. 137 of~\cite{matrixmult:drineas}).
+%
+\begin{algorithm}
+\centerline{\caption{One-pass \textsc{Select} algorithm}}
+\begin{algorithmic}[1]
+\State \underline{\textbf{Input:}} $\Ae{ij}$ for all $(i,j)\in [n]\times [n]$, arbitrarily ordered and $\epsilon >0$.
+\State $N=0$.
+\State \textbf{For all} $(i,j)\in [n]\times [n]$ \textbf{such that} $\Ae{ij}^2 > \frac{\epsilon^2}{4n^2}$
+\begin{itemize}
+\item $N = N + \Ae{ij}^2$.
+\item \textbf{Set} $(I,J)=(i,j)$ and $S = \Ae{ij}$ \textbf{with probability} $\frac{\Ae{ij}^2}{N}$.
+\end{itemize}
+\State \underline{\textbf{Output:}} Return $(I,J)$, $S$ and $N$.
+\end{algorithmic}
+\end{algorithm}
+%
+\noindent We note that Step $3$ essentially operates on $\widehat{\matA}$. Clearly, in a single pass over the data we can run in parallel $s$ copies of the \textsc{Select} Algorithm (using a total of $\OO(s)$ memory) to effectively return $s$ independent samples from $\widehat{\matA}$. Lemma~$1$ (page $136$ of~\cite{matrixmult:drineas}, note that the sequence of the $\Ae{ij}^2$'s is all-positive) guarantees that each of the $s$ copies of \textsc{Select} returns a sample satisfying:
+%
+\[\Prob{ (i_t,j_t) = (i, j) }\ =\ \frac{\widehat{\matA}_{ij}^2}{\sum_{i,j=1}^n \widehat{\matA_{ij}}^2} = \frac{\widehat{\matA}_{ij}^2}{\frobnorm{\widehat{\matA}}^2},\quad \mbox{for all }t=1,\dots ,s.\]
+%
+Finally, in the parlance of Step $5$ of Algorithm~\ref{alg:msparse:IPL}, $(i_t, j_t)$ is set to $(I,J)$ and $p_{i_tj_t}$ is set to $S^2/N$ for all $t \in [s]$.
+%
+\paragraph{Proof of Theorem~\ref{thm::msparse:IPL}}
+%
+The proof of Theorem~\ref{thm::msparse:IPL} will combine Lemmas~\ref{lem:lem1} and~\ref{lem:lem4} in order to bound $\norm{\matA - \widetilde{\matA}}$ as follows:
+%
+\begin{align*}
+	\norm{\matA-\widetilde{\matA}} = \norm{\matA-\widehat{\matA} + \widehat{\matA} - \widetilde{\matA}} \leq \norm{\matA-\widehat{\matA}} + \norm{\widehat{\matA} - \widetilde{\matA}} \leq \epsilon/2+\epsilon/2 = \epsilon.
+\end{align*}
+%
+The failure probability of Theorem~\ref{thm::msparse:IPL} emerges from Lemma~\ref{lem:lem4}, which fails with probability at most $n^{-1}$ for the choice of $s$ in Eqn.~(\ref{eqn:sfinal}). The proof of Lemma~\ref{lem:lem4} will involve the matrix-valued Bernstein bound, see Chapter~\ref{chap:intro}.
+%
+\paragraph{Bounding $\norm{\matA - \widehat{\matA}}$}
+%
+\begin{lemma}\label{lem:lem1}
+Using the notation of Algorithm~\ref{alg:msparse:IPL}, $\norm{\matA - \widehat{\matA}} \leq \epsilon/2$.
+\end{lemma}
+\begin{proof}
+%
+Recall that the entries of $\widehat{\matA}$ are either equal to the corresponding entries of $\matA$ or they are set to zero if the corresponding entry of $\matA$ is (in absolute value) smaller than $\epsilon/(2n)$. Thus,
+%
+\[\norm{\matA-\widehat{\matA}}^2 \leq \frobnorm{\matA-\widehat{\matA}}^2 = \sum_{i,j=1}^n \left(\matA - \widehat{\matA}\right)_{ij}^2 \leq \sum_{i,j=1}^n \frac{\epsilon^2}{4n^2}\leq \frac{\epsilon^2}{4}.\]
+%
+\end{proof}
+\paragraph{Bounding $\norm{\widehat{\matA} - \widetilde{\matA} }$}
+$\newline$
+In order to prove our main result in this section (Lemma~\ref{lem:lem4}) we will leverage a powerful matrix-valued Bernstein bound originally proven in~\cite{recht:simple_completion} (Theorem 3.2). We restate this theorem, slightly rephrased to better suit our notation.
+%
+\begin{theorem}\label{thm::recht}\textsc{[Theorem 3.2~of~\cite{recht:simple_completion}]}
+%
+Let $\matM_1,\matM_2,\ldots,\matM_s$ be independent, zero-mean random matrices in $\RR^{n \times n}$. Suppose $\max_{t \in [s]} \left\{\norm{\EE\left(\matM_t \matM_t^\top\right)},\norm{\EE\left(\matM_t^\top \matM_t\right)}\right\}\leq \rho^2$ and $\norm{\matM_t} \leq \gamma$ for all $t \in [s]$. Then, for any $\tau > 0$,
+%
+$$\norm{\frac{1}{s} \sum_{t=1}^s \matM_t} \leq \tau$$
+%
+holds, subject to a failure probability of at most
+%
+$$2n \exp\left(-\frac{s\tau^2/2}{\rho^2 + \gamma \tau/3}\right).$$
+%
+\end{theorem}
+%
+In order to apply the above theorem, using the notation of Algorithm~\ref{alg:msparse:IPL}, we set $\matM_t = \frac{\widehat{\matA}_{i_t j_t}}{p_{i_t j_t}} \e_{i_t} \e_{j_t}^\top - \widehat{\matA}$ for all $t \in [s]$ to obtain
+%
+\begin{equation}\label{eqn:mainexp}
+%
+\frac{1}{s} \sum_{t=1}^s \matM_t = \frac{1}{s} \sum_{t=1}^s \left[\frac{\widehat{\matA}_{i_t j_t}}{p_{i_t j_t}} \e_{i_t} \e_{j_t}^\top - \widehat{\matA}\right] = \widetilde{\matA} - \widehat{\matA}.
+%
+\end{equation}
+%
+It is easy to argue that $\EE \left(\matM_t\right) = \zeromtx_{n}$ for all $t \in [s]$. Indeed, if we consider that $\sum_{i,j=1}^n p_{ij}=1$ and $\widehat{\matA} = \sum_{i,j=1}^n \widehat{\matA}_{i j} \e_{i}\e_{j}^\top$ we obtain
+%
+\[\EE\left(\matM_t\right) = \sum_{i,j=1}^n p_{ij} \left(\frac{\widehat{\matA}_{i j}}{p_{i j}} \e_{i}\e_{j}^\top - \widehat{\matA}\right) = \sum_{i,j=1}^n \widehat{\matA}_{i j} \e_{i}\e_{j}^\top - \sum_{i,j=1}^n p_{ij} \widehat{\matA} = \zeromtx_{n}.\]
+%
+Our next lemma bounds $\norm{\matM_t}$ for all $t \in [s]$.
+%
+\begin{lemma}\label{lem:lem2}
+%
+Using our notation, $\norm{\matM_t} \leq 4n\epsilon^{-1}\frobnorm{\widehat{\matA}}^2$ for all $t \in [s]$.
+%
+\end{lemma}
+
+\begin{proof}
+%
+First, using the definition of $\matM_t$ and the fact that $p_{i_t j_t} = \widehat{\matA}_{i_tj_t}^2/\frobnorm{\widehat{\matA}}^2$,
+%
+$$\norm{\matM_t} = \norm{\frac{\widehat{\matA}_{i_t j_t}}{p_{i_t j_t}} \e_{i_t}\e_{j_t}^\top - \widehat{\matA}} \leq \frac{\frobnorm{\widehat{\matA}}^2}{\abs{\widehat{\matA}_{i_tj_t}}}+\norm{\widehat{\matA}} \leq \frac{2n\frobnorm{\widehat{\matA}}^2}{\epsilon}+\frobnorm{\widehat{\matA}}. $$
+%
+The last inequality follows since all entries of $\widehat{\matA}$ are at least $\epsilon/(2n)$ and the fact that $\norm{\widehat{\matA}} \leq \frobnorm{\widehat{\matA}}$. We can now assume that
+%
+\begin{equation}\label{eqn:assumption}
+\frobnorm{\widehat{\matA}} \leq \frac{2n\frobnorm{\widehat{\matA}}^2}{\epsilon}
+\end{equation}
+%
+to conclude the proof of the lemma. To justify our assumption in Eqn.~(\ref{eqn:assumption}), we note that if it is violated, then it must be the case that $\frobnorm{\widehat{\matA}} < \epsilon /(2n)$. If that were true, then all entries of $\widehat{\matA}$ would be equal to zero. (Recall that all entries of $\widehat{\matA}$ are either zero or, in absolute value, larger than $\epsilon/(2n)$.) Also, if $\widehat{\matA}$ were identically zero, then \textit{(i)} $\widetilde{\matA}$ would also be identically zero and, \textit{(ii)} all entries of $\matA$ would be at most $\epsilon/(2n)$. Thus, $$\norm{\matA-\widetilde{\matA}} = \norm{\matA} \leq \frobnorm{\matA} \leq \sqrt{n^2 \frac{\epsilon^2}{4n^2}}=\frac{\epsilon}{2}.$$
+%
+Thus, if the assumption of Eqn.~(\ref{eqn:assumption}) is not satisfied, the resulting all-zeros $\widetilde{\matA}$ still satisfies Theorem~\ref{thm::msparse:IPL}.
+%
+\end{proof}
+
+\noindent Our next step towards applying Theorem~\ref{thm::recht} involves bounding the spectral norm of the expectation of $\matM_t\matM_t^\top$. The spectral norm of the expectation of $\matM_t^\top\matM_t$ admits a similar analysis and the same bound and is omitted.
+%
+\begin{lemma}\label{lem:lem3}
+%
+Using our notation, $\norm{\EE\left(\matM_t\matM_t^\top\right)} \leq n\frobnorm{\widehat{\matA}}^2$ for any $t \in [s]$.
+%
+\end{lemma}
+
+\begin{proof}
+%
+We start by evaluating $\EE\left(\matM_t \matM_t^\top\right)$; recall that $p_{ij} = \widehat{\matA}_{ij}^2/\frobnorm{\widehat{\matA}}^2$:
+%
+\begin{align*}
+%
+\EE\left(\matM_t\matM_t^\top\right) &= \EE\left(\left(\frac{\widehat{\matA}_{i_tj_t}}{p_{i_tj_t}} \e_{i_t} \e_{j_t}^\top-\widehat{\matA}\right)\left(\frac{\widehat{\matA}_{i_tj_t}}{p_{i_tj_t}}\e_{j_t}\e_{i_t}^\top-\widehat{\matA}^\top\right)\right)\\
+%
+&= \sum_{i,j=1}^n p_{ij}\left(\frac{\widehat{\matA}_{ij}}{p_{ij}} \e_{i}\e_{j}^\top-\widehat{\matA}\right)\left(\frac{\widehat{\matA}_{ij}}{p_{ij}} \e_{j}\e_{i}^\top - \widehat{\matA}^\top\right)\\
+%
+&= \sum_{i,j=1}^n \left(\frac{\widehat{\matA}_{ij}^2}{p_{ij}}\e_{i}\e_{i}^\top-\widehat{\matA}_{ij} \widehat{\matA} \e_j \e_i^\top - \widehat{\matA}_{ij} \e_i \e_j^\top \widehat{\matA}^\top +p_{ij}\widehat{\matA}\widehat{\matA}^\top\right)\\
+%
+&= \frobnorm{\widehat{\matA}}^2 \sum_{i=1}^n m_i\cdot \e_i \e_i^\top  -\sum_{j=1}^n \widehat{\matA} \e_j \sum_{i=1}^n \widehat{\matA}_{ij} \e_i^\top - \sum_{j=1}^n\left(\sum_{i=1}^n\widehat{\matA}_{ij} \e_i\right) \left(\widehat{\matA} \e_j\right)^\top + \sum_{i,j=1}^n p_{ij} \widehat{\matA} \widehat{\matA}^\top,
+%
+\end{align*}
+where $m_i$ is the number of non-zeroes of the $i$-th row of $\widehat{\matA}$.
+%
+We now simplify the above result using a few simple observations: $\sum_{i,j=1}^n p_{ij}=1$, $\widehat{\matA} \e_j = \widehat{\matA}^{(j)}$, $\sum_{i=1}^n \widehat{\matA}_{ij}e_i = \widehat{\matA}^{(j)}$, and $\sum_{j=1}^n \widehat{\matA}^{(j)} \left(\widehat{\matA}^{(j)}\right)^\top = \widehat{\matA} \widehat{\matA}^\top$. Thus, we get
+%
+\begin{align*}
+%
+\EE\left(\matM_t\matM_t^\top\right) &= \frobnorm{\widehat{\matA}}^2 \sum_{i=1}^n m_i\cdot \e_i \e_i^\top  -\sum_{j=1}^n \widehat{\matA}^{(j)} \left(\widehat{\matA}^{(j)}\right)^\top - \sum_{j=1}^n \widehat{\matA}^{(j)} \left(\widehat{\matA}^{(j)}\right)^\top + \widehat{\matA} \widehat{\matA}^\top\\
+%
+&= \frobnorm{\widehat{\matA}}^2 \sum_{i=1}^n m_i\cdot \e_i \e_i^\top  - \widehat{\matA} \widehat{\matA}^\top.
+%
+\end{align*}
+%
+Since $0\leq m_i \leq n$ and using Weyl's inequality (Theorem~$4.3.1$ of \cite{book:matrix_analysis:HornJohnson}), which states that by adding a positive semi-definite matrix to a symmetric matrix all its eigenvalues will increase, we get that
+\[ -\widehat{\matA}\widehat{\matA}^\top \preceq \EE\left(\matM_t\matM_t^\top\right) \preceq n \frobnorm{\widehat{\matA}}^2 \Id_n.\]
+%
+Consequently $\norm{\EE{\left(\matM_t \matM_t^\top\right)}} = \max\left\{ \norm{\widehat{\matA}}^2, n\frobnorm{\widehat{\matA}}^2\right\} = n \frobnorm{\widehat{\matA}}^2$.
+%
+%
+\end{proof}
+%
+
+\noindent We can now apply Theorem~\ref{thm::recht} on Eqn.~(\ref{eqn:mainexp}) with $\tau = \epsilon/2$, $\gamma = 4n\epsilon^{-1}\frobnorm{\widehat{\matA}}^2$ (Lemma~\ref{lem:lem2}), and $\rho^2 = n\frobnorm{\widehat{\matA}}^2$ (Lemma~\ref{lem:lem3}) . Thus, we get that $\norm{\widehat{\matA} - \widetilde{\matA}} \leq \epsilon/2$ holds, subject to a failure probability of at most $$2n \exp\left(-\frac{\epsilon^2 s/8}{\left(1+4/6\right)n\frobnorm{\widehat{\matA}}^2}\right).$$
+%
+Bounding the failure probability by  $\delta$ and solving for $s$, we get that $s \geq \frac{14}{\epsilon^2}n\frobnorm{\widehat{\matA}}^2 \ln\left(\frac{2n}{\delta}\right)$. Using $\frobnorm{\widehat{\matA}} \leq \frobnorm{\matA}$ (by construction) concludes the proof of the following lemma, which is the main result of this section.
+%
+\begin{lemma}\label{lem:lem4}
+%
+Using the notation of Algorithm~\ref{alg:msparse:IPL}, if
+%
+$s \geq 14n\epsilon^{-2} \frobnorm{\matA}^2\ln\left(2n/\delta\right),$
+%
+then, with probability at least $1-\delta$, $$\norm{\widehat{\matA} - \widetilde{\matA}} \leq \epsilon/2.$$
+%
+\end{lemma}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Deterministic Matrix Sparsification}\label{sec:sparsification:matrix}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+To the best of our knowledge, all known algorithms for this problem are randomized (see Table~\ref{table:summary}). In this section, we present the first deterministic algorithm. A deterministic algorithm for the element-wise matrix sparsification problem can be obtained by derandomizing Algorithm~\ref{alg:msparse:IPL}.
+\begin{theorem}\label{thm:matrix_sparse:slow}
+Let $\matA$ be an $n\times n$ matrix and $ 0 < \eps <1$.  There is a deterministic polynomial time algorithm that, given $\matA$ and $ \eps$, outputs a matrix $\widetilde{\matA}\in \reals^{n\times n}$ with at most $ 28 n \ln (\sqrt{2n} ) \sr{\matA} /\eps^2$ non-zero entries such that $\norm{\matA - \widetilde{\matA}} \leq \eps \norm{\matA}.$
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}(of Theorem~\ref{thm:matrix_sparse:slow})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+By homogeneity, assume that $\norm{\matA} = 1$. Following the proof of Theorem~\ref{thm::msparse:IPL}, we can assume that w.l.o.g. all non-zero entries of $\matA$ have magnitude at least $\eps/(2n)$ in absolute value, otherwise we can zero-out these entries and incur at most an error of $\eps/2$.
+%
+
+%
+Consider the bijection $\pi$ between the sets $[n^2]$ and $[n]\times [n]$ defined by $\pi (l)  \mapsto ( \lceil l / n\rceil , (l - 1) \mod n + 1) $ for every $l\in[n^2]$. Let $\matE_{ij}\in\reals^{n\times n}$ be the all zeros matrix having one only in the $(i,j)$ entry. Set $h(l) = \dil{ \frac{\matA_{\pi (l)}}{p_{l}} \matE_{\pi (l)} - \matA }$ where $p_l = \matA_{\pi (l)}^2/\frobnorm{\matA}^2$ for every $l\in{[n^2]}$. Observe that $h(\cdot ) \in \Sym^{2n\times 2n}$. Let $X$ be a random variable over $[n^2]$ with distribution $p_l$, $l\in{[n^2]}$. The same analysis as in Lemmas~\ref{lem:lem2} and~\ref{lem:lem3} of~\cite{matrix:sparsification:IPL2011} together with properties of the dilation map imply that $\norm{h(l)} \leq 4n\sr{\matA} /\eps$ for every $l\in{[n^2]}$, $\EE{h(X)}=\zeromtx_{2n}$, and $\norm{\EE h(X)^2} \leq n\sr{\matA}$.
+
+Run Algorithm~\ref{alg:matrix:hyperbolic} with $h(\cdot )$ as above. Algorithm~\ref{alg:matrix:hyperbolic} returns at most $t=28 n  \ln (\sqrt{2}n)\sr{\matA}/\eps^2$ indices $x_1^*,x_2^*,\ldots x_t^*$ over $[n^2]$ using $\OO(n^6 \sr{\matA} \log n /\eps^2 )$ operations such that
+	\begin{equation}\label{ineq:esoteric}
+		\norm{ \frac1{t}\sum_{l=1}^{t} h(x_l^*)} \leq \eps / 2.
+	\end{equation}
+Set $\widetilde{\matA} : = \frac1{t} \sum_{l=1}^{t} \matA_{\pi (x_l^*)} /p_{x_l^*} \matE_{\pi (x_l^*)}$. Observe that $\widetilde{\matA}$ has at most $t$ non-zero entries. Now, by the definition of $h(\cdot)$ and properties of the  dilation map, it follows that Ineq.~\eqref{ineq:esoteric} is equivalent to $\norm{ \dil{\widetilde{\matA} - \matA }} \ =\ \norm{ \widetilde{\matA} - \matA } \leq \eps /2.$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Sparsification for SDD Matrices}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section, we give an elementary connection between element-wise matrix sparsification and spectral sparsification of psd matrices. A direct application of this connection implies strong sparsification bounds for symmetric matrices that are close to being \emph{diagonally dominant}. More precisely, we give two element-wise sparsification algorithms for symmetric and diagonally dominant-like matrices; in its randomized and the other in its derandomized version (see Table~\ref{table:summary}). Both algorithms share a crucial difference with all previously known sampling-based algorithms for this problem; that is, during the sparsification process they arbitrarily densify the diagonal entries. As we will see later this twist turns out to allow strong sparsification bounds. The next theorem presents stronger sparsification algorithms for the special case of diagonally dominant matrices both randomized and deterministic.
+%
+\begin{theorem}
+Let $\matA$ be any symmetric and diagonally dominant matrix of size $n$ and $ 0 < \eps <1$. Assume for normalization that $\norm{\matA}=1$.
+\begin{enumerate}[(a)]
+ \item
+There is a randomized linear time algorithm that outputs a matrix $\widetilde{\matA}\in \reals^{n\times n}$ with at most $\OO( n \log n /\eps^2)$ non-zero entries such that, with probability at least $1-1/n$, $\norm{\matA - \widetilde{\matA}} \leq \eps.$
+\item
+There is a deterministic $\widetilde{\OO}( \eps^{-2} \nnz{\matA} n^2 \log n  \max\{ \log^2 n,1/\eps^2 \} )$ time algorithm that outputs a matrix $\widetilde{\matA}\in \reals^{n\times n}$ with at most $\OO(n/\eps^2)$ non-zero entries such that $\norm{\matA - \widetilde{\matA}} \leq \eps.$
+\end{enumerate}
+\end{theorem}
+%
+
+%
+Recall that the results of~\cite{graph:sparsifiers:eff_resistance,graph:sparsifiers:twice_ram} imply an element-wise sparsification algorithm that works only for Laplacian matrices. It is easy to verify that Laplacian matrices are also diagonally dominant. Here we extend these results to a wider class of matrices (with a weaker notion of approximation). The diagonally dominant assumption is too restrictive and we will show that our sparsification algorithms work for a wider class of matrices. To accommodate this, we say that a matrix $\matA$ is $\theta$-symmetric diagonally dominant (abbreviate by $\theta$-SDD) if $\matA$ is symmetric and the inequality $\infnorm{\matA} \leq \sqrt{\theta} \norm{\matA}$ holds.
+%
+
+%
+By definition, any diagonally dominant matrix is also a $4$-SDD matrix. On the other extreme, every symmetric matrix of size $n$ is $n$-SDD since the inequality $\infnorm{\matA}\leq \sqrt{n} \norm{\matA}$ is always valid. The following elementary lemma gives a connection between element-wise matrix sparsification and spectral sparsification as defined in~\cite{phdthesis:Srivastava:2010}.
+\begin{lemma}\label{lem:sparsif:decomp}
+Let $\matA$ be a symmetric matrix of size $n$ and $\matR=\diag{r_1,r_2,\ldots ,r_n}$ where $r_i = \sum_{j\neq i} |\matA_{ij}|$. Then there is a matrix $\matC$ of size $n\times m$ with $m \leq \binom{n}{2}$ such that
+\begin{align}\label{eqn:sparsify_lemma}
+ \matA = \matC\matC^\top +\diag{\matA} - \matR.
+\end{align}
+Moreover, each column of $\matC$ is indexed by the ordered pairs $(i,j)$, $i<j$ and equals to $\matC^{(i,j)} = \sqrt{|\matA_{ij}|} \e_i + \sign{\matA_{ij}}  \sqrt{|\matA_{ij}|} \e_j$ for every $i<j$, $i,j\in[n]$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:sparsif:decomp})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The key identity is $\matC\matC^\top : = \sum_{l,k\in{[n]},\ l<k} \matC^{(l,k)} \otimes \matC^{(l,k)}$. Let $l,k\in{[n]}$ with $l<k$, it follows that
+\begin{align*}
+\matC^{(l,k)} \otimes \matC^{(l,k)}   & =  \left(\sqrt{|\matA_{lk}|} \e_l + \sign{\matA_{lk}}  \sqrt{|\matA_{lk}|} \e_k \right)\left(\sqrt{|\matA_{lk}|} \e_l + \sign{\matA_{lk}}  \sqrt{|\matA_{lk}|} \e_k\right)^\top\\
+ & =  |\matA_{lk}| \e_l \otimes \e_l + \matA_{lk} \e_k \otimes \e_k + \matA_{lk} \e_k \otimes \e_l + |\matA_{lk}| \e_k \otimes \e_k.
+\end{align*}
+Therefore
+\begin{equation}\label{eqn:sparse_decomp}
+ \matC\matC^\top = \sum_{l,k\in{[n]}:\ l< k }\left[|\matA_{lk}| \e_l \otimes \e_l + \matA_{lk} \e_k \otimes \e_k + \matA_{lk} \e_k \otimes \e_l + |\matA_{lk}| \e_k \otimes \e_k\right].
+\end{equation}
+Let's first prove the equality for the off-diagonal entries of Eqn~\eqref{eqn:sparsify_lemma}. Let $l<k$ and $l,k\in{[n]}$. By construction, the only term of the sum that contributes to the $(i,j)$ and $(j,i)$ entry of the right hand side of Eqn.~\eqref{eqn:sparse_decomp} is the term $\matC^{(i,j)} \otimes \matC^{(i,j)} $. Moreover, this term equals $|\matA_{ij}| \e_i \otimes \e_i + \matA_{ij} \e_i \otimes \e_j + \matA_{ij} \e_j \otimes \e_i + |\matA_{ij}| \e_j \otimes \e_j$. Since $\matA_{ij} = \matA_{ji}$ this proves that the off-diagonal entries are equal.
+%
+
+%
+For the diagonal entries of Eqn.~\eqref{eqn:sparsify_lemma}, it suffices to prove that $(\matC\matC^\top)_{ii} = r_i$. First observe that the last two terms of the sum in the right hand side of~\eqref{eqn:sparse_decomp} do not contribute to any diagonal entry. Second, the first two terms contribute only when $l=i$ or $k=i$. In the case where $l=i$, the contribution of the sum equals to $\sum_{i<k} |\matA_{ik}|$. On the other case ($k=i$), the contribution of the sum is equal to $\sum_{l<i} |\matA_{li}|$. However, $\matA$ is symmetric so $\matA_{li} = \matA_{il}$ for every $l<i$. It follows that the total contribution is $\sum_{i<k} |\matA_{ik}| + \sum_{l<i} |\matA_{il}| = \sum_{j\neq i} |\matA_{ij}| = r_i$.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{remark}
+In the special case where $\matA$ is the Laplacian matrix of some graph, the above decomposition is precisely the vertex-edge decomposition of the Laplacian matrix, since in this case $\diag{\matA} =\matR$.
+\end{remark}
+Using the above lemma, we give a randomized and a deterministic algorithm for sparsifying $\theta$-SDD matrices. First we present the randomized algorithm.
+\begin{theorem}\label{thm:matrix_sparsif:rand}
+Let $\matA$ be a $\theta$-SDD matrix of size $n$ and $ 0 < \eps <1$.  There is a randomized linear time algorithm that, given $\matA$, $\norm{\matA}$ and $\eps$, outputs a matrix $\widetilde{\matA}\in \reals^{n\times n}$ with at most $\OO( n\theta \log n /\eps^2)$ non-zero entries such that w.p. at least $1-1/n$, $\norm{\matA - \widetilde{\matA}} \leq \eps \norm{\matA}.$
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%( of Theorem~\ref{thm:matrix_sparsif:rand})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In one pass over the input matrix $\matA$ normalize the entries of $\matA$ by $\norm{\matA}$, so assume without loss of generality that $\norm{\matA}=1$. Let $\matC$ be the $n\times m$ matrix guaranteed by Lemma~\ref{lem:sparsif:decomp}, where $m= \binom{n}{2}$, each column of $\matC$ is indexed by the ordered pairs $(i,j)$, $i<j$ and $\matA = \matC\matC^\top +\diag{\matA} - \matR$. By definition of $\matC$ and the hypothesis, we have that $\norm{\matC\matC^\top} = \norm{\matA - \diag{\matA} +\matR} \leq \norm{\matA} +\infnorm{\matA}\leq 2\sqrt{\theta}$ and $\frobnorm{\matC}^2 =2 \sum_{i,j} |\matA_{ij}| \leq 2 n \infnorm{\matA}\leq 2n \sqrt{\theta} $.
+%
+
+%
+Consider the bijection between the sets $[m]$ and $\{(i,j)\ |\ i<j,\ i,j\in{[n]}\}$ defined by $\pi (l)  \mapsto ( \lceil l / n\rceil , (l-1) \mod n + 1) $. For each $l\in{[m]}$, set $p_l=\norm{\matC^{\pi (l)}}^2 / \frobnorm{\matC}^2$ and define $f(l):= \matC^{\pi(l)} \otimes \matC^{\pi(l)}/p_l - \matC\matC^\top$. Let $X$ be a real-valued random variable over $[m]$ with distribution $p_l$. It is easy to verify that $\EE{f(X)} = \zeromtx_n$, $\norm{f(l)} \leq 2 \frobnorm{\matC}^2$ for every $l\in{[m]}$. A direct calculation gives that $\norm{\EE{ f(X)^2}} \leq 2\frobnorm{\matC}^2\norm{\matC\matC^\top}$. Matrix Bernstein inequality (see~\cite{chernoff:matrix_valued:Tropp}) with $f(\cdot)$ as above ($\gamma = 4n\sqrt{\theta}$ and $\rho^2 = 8 n \theta$) tells us that if we sample $t=38 n\theta \ln(\sqrt{2}n) /\eps^2 $ indices $x_1^*, x_2^*,\ldots , x_t^*$ over $[m]$ then with probability at least $1-1/n$, $\norm{ \frac1{t} \sum_{j=1}^{t} f(x_j^*)} \leq \eps$. Now, set $\widetilde{\matC}\in\reals^{n\times t}$ where the $j$-th column of $\widetilde{\matC}^{(j)}$ equals $\frac1{\sqrt{t}} \matC^{\pi(x_j^*)}$. It follows that $\norm{ \frac1{t} \sum_{j=1}^{t} f(x_j^*)} = \norm{ \frac1{t} \sum_{j=1}^{t} \matC^{\pi(x_j^*)} \otimes \matC^{\pi(x_j^*)} - \matC\matC^\top} = \norm{\widetilde{\matC}\widetilde{\matC}^\top - \matC\matC^\top}$. Define $\widetilde{\matA} = \widetilde{\matC}\widetilde{\matC}^\top +\diag{\matA} - \matR $. First notice that $\norm{\widetilde{\matA} - \matA} = \norm{\widetilde{\matC} \widetilde{\matC}^\top -\matC\matC^\top} \leq \eps$. It suffices to bound the number of non-zeros of $\widetilde{\matA}$. To do so, view the matrix-product $\widetilde{\matC}\widetilde{\matC}^\top$ as a sum of rank-one outer-products over all columns of $\widetilde{\matC}$. By the special structure of the entries of $\widetilde{\matC}$, every outer-product term of the sum contributes to at most four non-zero entries, two of which are off-diagonal. Since $\widetilde{\matC}$ has at most $t$ columns, $\widetilde{\matA}$ has at most $n + 2t$ non-zero entries; $n$ for the diagonal entries and $2t$ for the off-diagonal.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Next we state the derandomized algorithm of the above result.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:matrix_sparsif:det}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Let $\matA$ be a $\theta$-SDD matrix of size $n$ and $ 0 < \eps <1/2$.  There is an algorithm that, given $\matA$ and $ \eps$, outputs a matrix $\widetilde{\matA}\in \reals^{n\times n}$ with at most $\OO( n \theta /\eps^2)$ non-zero entries such that $\norm{\matA - \widetilde{\matA}} \leq \eps \norm{\matA}$. Moreover, the algorithm computes $\widetilde{\matA}$ in deterministic $\widetilde{\OO}(\nnz{\matA} n^2 \theta\log^3 n  /\eps^2 + n^4 \theta^2 \log n /\eps^4)$ time.
+\end{theorem}
+\begin{remark}
+The results of~\cite{graph:sparsifiers:twice_ram,phdthesis:Srivastava:2010} imply a deterministic $\OO(\nnz{\matA} \theta n^3 /\eps^2 )$ time algorithm that outputs a matrix $\widetilde{\matA}$ with at most $ \lceil 19(1+\sqrt{\theta})^2 /\eps^2\rceil n $ non-zero entries such that $\norm{\widetilde{\matA}-\matA} \leq \eps\norm{\matA}$.
+\end{remark}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:matrix_sparsif:det})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Let $\matC$ be the $n\times m$ matrix such that $\matA = \matC\matC^\top +\diag{\matA} - \matR$ and $m\leq \nnz{\matA}$ guaranteed by Lemma~\ref{lem:sparsif:decomp}. Apply Theorem~\ref{thm:sparsification:here} on the matrix $\matC\matC^\top$  and $\eps$ which outputs, in deterministic $\widetilde{\OO}(\nnz{\matA} n^2$
+$ \theta \log^3 n  /\eps^2 + n^4 \theta^2 \log n /\eps^4)$ time, an $n\times \lceil n/\eps^2\rceil$ matrix $\widetilde{\matC}$ such that $(1-\eps)^3 \matC\matC^\top \preceq \widetilde{\matC}\widetilde{\matC}^\top \preceq (1+\eps)^3 \matC\matC^\top.$ By Weyl's inequality~\cite[Theorem~$4.3.1$]{book:matrix_analysis:HornJohnson} and the fact that $\eps<1/2$, it follows that $\norm{\matC\matC^\top - \widetilde{\matC}\widetilde{\matC}^\top} \leq 5 \eps \norm{\matC\matC^\top}$. Define $\widetilde{\matA}:= \widetilde{\matC}\widetilde{\matC}^\top + \diag{\matA} - \matR$. First we argue that the number of non-zero entries of $\widetilde{\matA}$ is at most $n+ \lceil 2n/\eps^2 \rceil $. Recall that every column of $\widetilde{\matC}$ is a rescaled column of $\matC$. Now, think the matrix-product $\widetilde{\matC}\widetilde{\matC}^\top$ as a sum of rank-one outer-products over all columns of $\widetilde{\matC}$. By the special structure of the entries of $\widetilde{\matC}$, every outer-product term of the sum contributes to at most four non-zero entries, two of which are off-diagonal. Since $\widetilde{\matC}$ has at most $\lceil n/\eps^2 \rceil$ columns, $\widetilde{\matA}$ has at most $n + \lceil 2 n/\eps^2\rceil$ non-zero entries; $n$ for the diagonal entries and $\lceil 2 n/\eps^2\rceil$ for the off-diagonal. Moreover, $\widetilde{\matA}$ is close to $\matA$ in the operator norm sense. Indeed,
+\begin{align*}
+	\norm{\matA - \widetilde{\matA} } &   =   \norm{\matC\matC^\top - \widetilde{\matC}\widetilde{\matC}^\top}  \leq\ 5\eps\norm{\matC\matC^\top } \   =  \  5\eps\norm{\matA - \diag{\matA} +\matR }\\
+	  						  & \leq  5\eps(\norm{\matA} + \infnorm{\matA}) \ \leq\ 10 \eps \sqrt{\theta}\norm{\matA}
+\end{align*}
+where we used the definition of $\widetilde{\matA}$, Eqn.~\eqref{eqn:sparsify_lemma}, triangle inequality, the assumption that $\matA$ is $\theta$-SDD and the fact that $\theta \geq 1$. Repeating the proof with $\eps' =\frac{\eps}{10\sqrt{\theta}}$ and elementary manipulations conclude the proof.
+\end{proof}
+%
+%

@@ -1,0 +1,34 @@
+\chapter{Conclusions}\label{chap:conclusion}
+%
+In the present thesis, we proposed randomized approximation algorithms for several computational problems that can be framed using the (highly descriptive) language of linear algebra. In almost all scenarios presented here, the proposed algorithms are asymptotically more efficient than the state-of-the-art exact deterministic procedures for constant approximation error. We believe that the proposed algorithms might be practical for applications in which an approximate solution within a few digits of precision away from the exact answer is sufficient.
+%
+
+%
+However, many applications require highly accurate approximations to the exact solution, namely in the regime of ten to fifteen digits of precision. Most of the randomized algorithms discussed here seem not applicable in such high accuracy regimes mainly because their time complexity depends inverse polynomially on the approximation error, i.e., $\poly{1/\eps}$. Such an inverse polynomial dependency is a consequence of the sampling bounds that are required by probabilistic considerations. On the other hand there are cases, such as the paradigm of randomized proconditioning~\cite{RT08,AMT10}, where randomness turned out to be extremely useful on the high accuracy regime and even produced algorithms that outperformed well-developed software packages (LAPACK)~\cite{LAPACK}. We believe that there are many other such successful paradigms to be discovered.
+%
+
+%
+Nevertheless, we hope that the research presented in this thesis triggers a lot of interesting questions to pursue. We briefly enumerate some of the them below.
+%
+
+%
+As we mentioned in Chapter~\ref{chap:intro}, Wigderson and Xiao generalized the conditional expectation method to the matrix-valued setting~\cite{chernoff:matrix_valued:derand:WX08}. Along the same lines, we proposed the \emph{matrix hyperbolic cosine} algorithm in Section~\ref{sec:balancing}. Both these generalizations can be viewed as a derandomization on the space of matrices equipped with the operator norm. The usefulness of similar matrix concentration inequalities under a different class of norms, i.e., Schatten norms was presented in~\cite{chernoff:matrix_valued:Azuma_Naor}. The main motivation in~\cite{chernoff:matrix_valued:Azuma_Naor} was to construct small-set expanding graphs and we should highlight that this construction inspired researchers to design algorithms towards refuting the unique games conjecture~\cite{ABS10}. We believe that an interesting research direction is to ``derandomize'' such matrix concentration inequalities under the Schatten norm.
+%
+
+%
+An additional open question that can be raised in Chapter~\ref{chap:intro} is about the balancing matrix game (see end of Section~\ref{sec:balancing}): Does Spencer's six standard deviation bound hold in the matrix-valued setting\footnote{The author would like to thank Toni Pitassi for bringing this question into his attention.}? Moreover, a better understanding of the connection between the matrix hyperbolic cosine algorithm and Arora-Kale's matrix multiplicative weights update method~\cite{arora:fast_SDP,phdthesis:Kale:2008} is an interesting direction of research.
+%
+
+%
+In Chapter~\ref{chap:rnla}, we analyzed randomized approximation algorithms for fundamental linear algebraic computations. The main drawback of most of these algorithms is that they are effective only in the case of highly rectangular matrices, i.e., input matrices containing much more rows than columns or vice versa. Can randomness help us in the scenarios of  ``almost'' square matrices? For example, is there an efficient randomized algorithm for approximating the eigenvalues/singular values of squares matrices?
+%
+
+%
+One of the problems that we studied in Chapter~\ref{chap:ma} was the design of approximation algorithms for solving linear regression problems. To the best of our knowledge, we are unaware of any lower bounds for this problem. Is there a near-linear time randomized approximate least-squares solver? There is some recent indication that this might be the case, however, under a weak notion of approximation~\cite{ls:nnzA}.
+%
+
+%
+Last but not least, we would like to pose a question regarding the approximate matrix multiplication problem discussed in the beginning of Chapter~\ref{chap:rnla}. Unfortunately, the main theorem about approximate matrix multiplication (Theorem~\ref{thm:matrixmult}) is only effective in the case of highly rectangular matrices and the case of low stable rank matrices. So, is it possible that randomness is able to help us devise algorithms for the cases of high stable rank almost square matrices?
+%
+%
+% The end

@@ -1,0 +1,22 @@
+\chapter*{Appendix}
+We briefly recall an efficient and numerically stable algorithm for computing all the eigenvalues of any rank-one updated diagonal matrix of size $n$ that was proposed in~\cite{Gu:update}. This algorithm is the main ingredient behind the fast isotropic sparsification algorithm~\ref{alg:fast:isotrop} presented in Chapter~\ref{chap:ma}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Fast Multiplication with Cauchy Matrices and Special Eigensystems}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We start by defining the so-called Cauchy (generalized Hilbert) matrices. An $m\times n$ matrix $\matC$ defined by
+\[ C_{i,j} := \frac1{t_i - s_j},\quad i\in{[m]},j\in{[n]},\]
+where $\vct{t}=(t_1,\ldots ,t_m),\ \vct{t}\in\reals^m$ and $\vct{s}=(s_1,\ldots ,s_n),\ s\in\reals^n$  and $t_i\neq s_j$ for all $i\in{[m]}$ and $j\in{[n]}$ is called \emph{Cauchy}. Given a vector $\x\in\reals^n$, the naive algorithm for computing the matrix-vector product $\matC \x$ requires $\OO(mn)$ operations. It is not clear if it is possible to perform this computation in less than $\OO(mn)$ operations. Surprisingly enough, it is possible to compute this product with $\OO((m+n)\log^2 (m+n))$ operations. This computation can be done by two different approaches. The first one is based on fast polynomial multiplication, polynomial interpolation and polynomial evaluation at distinct points~\cite[Algorithm~$1$, p.~$130$]{book:fast_matrix:Bini_Pan}. The main drawback of this approach is its numerical instability. The second approach is based on the so-called Fast Multipole Method (FMM) introduced in~\cite{FMM:CGR}. This method returns an approximate solution to the matrix-vector product for any given error parameter\footnote{That is, given an $n\times n$ Cauchy matrix, a vector $\x\in\reals^n$ and $0<\eps< 1$, returns a vector $\y\in\reals^n$ so that $\infnorm{\y - \matC\x} \leq \eps \infnorm{\x}$ in time $\OO(n \log^2 (1/\eps))$. In an actual implementation, setting $\eps$ to be a small constant relative to the machine's (numerical) precision suffices; see~\cite[\S~$3$]{Gu:update} for a more careful implementation and discussion on numerical issues.}. Ignoring numerical issues that are beyond the scope of this work, we summarize our discussion to the following
+%
+%
+\begin{lemma}\cite{book:fast_matrix:Bini_Pan,FMM:CGR}\label{lem:fast_mm:gerasoulis}
+Let $\x\in\reals^n$ and $\matC$ be a Cauchy matrix defined as above with $\vct{t}\in\reals^m, \vct{s}\in\reals^n$. There is an algorithm that, given vectors $\vct{s},\vct{t},\x$, computes the product $\C  \x$ using $\OO((m+n)\log^2 (m+n))$ operations.
+\end{lemma}
+%
+Given a self-adjoint matrix $\matB = \Sigma + \rho \u \otimes \u$, where $\Sigma = \diag{\sigma_1 ,\ldots ,\sigma_n}$, $\rho >0$ and $u\in\reals^n$ is a unit vector, our goal is to efficiently compute all the eigenvalues of $B$. It is well-known that the eigenvalues of $B$ are the roots of a special function, known as secular function~\cite{rank_one_update:Golub} and are interlaced with $\{\sigma_{i}\}_{i\leq n}$. In addition, evaluating the secular function requires $\OO(n)$ operations implying that a standard (Newton) root-finding procedure requires $\OO(n)$ operations per each eigenvalue. Hence, $\OO(n^2)$ operations are required for all eigenvalues. In their seminal paper~\cite{Gu:update}, Gu and Eisenstat showed that it is possible to encode the updates of the root-finding procedure for \emph{all} eigenvalues as matrix-vector multiplication with an $n\times n$ Cauchy matrix. Based on this observation, they showed how to use the Fast Multipole Method for approximately computing all the eigenvalues of this special type of eigenvalue problem.
+%
+\begin{lemma}\cite{Gu:update}\label{lem:comp_eigs}
+Let $b\in\NN$, $\rho>0$, $\Sigma=\diag{\sigma_1,\sigma_2,\ldots , \sigma_n}$ and $\u\in\reals^n$ be a unit vector. There is an algorithm that given $\Sigma, \rho, \u$ computes all the eigenvalues of $\matB=\Sigma + \rho \u \otimes \u$ within an additive error $2^{-b}\norm{\matB}$ in $\OO(n \log^2 n \log b )$ operations.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

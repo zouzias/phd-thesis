@@ -1,0 +1,609 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}\label{chap:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Randomness has served as an important resource and indispensable idea in the theory of computation. There is a plethora of successful paradigms of the use of randomness in theoretical computer science including complexity theory (interactive proofs, PCP), distributed computation, and randomized approximation algorithms in combinatorial optimization (randomized rounding), computational geometry (coresets) and machine learning theory (VC-dimension), to name a few. Randomness has also been the driving force in discrete mathematics towards a better understanding of combinatorial structures via the probabilistic method.
+%
+
+%
+The present thesis focuses on the following fundamental question:
+\begin{center}
+	How can we utilize randomness to accelerate linear algebraic computations?
+\end{center}
+%
+
+%
+The design and analysis of deterministic ``exact'' algorithms for linear algebraic tasks including multiplying matrices, solving a system of linear equations, computing the rank, the singular values or any other interesting quantities associated with matrices has a very rich literature both in the pure and the applied mathematics literature~\cite{book:Demmel,book:GVL}.
+%
+
+%
+On the other hand, the first appearance of a randomized algorithm for approximating matrix computations via dimensionality reduction appeared in the papers of Papadimitriou et al.~\cite{LSI} and Frieze et al.~\cite{FKV98}. The authors of~\cite{LSI}, motivated by an application to term-document indexing (latent semantic indexing), proposed a randomized algorithm for efficient low rank matrix approximation using random projections. The paper of~\cite{FKV98} analyzed a randomized dimensionality reduction approach utilizing non-uniform row/column sampling for the low rank matrix approximation problem. In the sequel, the idea of utilizing randomness to approximate matrices inspired researchers to design and analyze randomized algorithms for approximating matrix multiplication~\cite{matrixmult:drineas}, low rank matrix approximation~\cite{lowrank:FKV,lowrank:drineas,lra:PNAS2007,HMT} and matrix decomposition~\cite{matrixdecomp:drineas} to name a few. Most of this work was motivated by the need of processing very large data-sets which are usually modeled by a matrix representation. In particular, a large body of work on the the design of randomized algorithms for large matrix problems has been recently developed. The current state of the rapidly growing literature in this research area has been partially summarized in the following surveys~\cite{book:Mahoney,book:spectral,HMT}.
+%
+
+%
+The scope of this thesis is to contribute to the aforementioned line of research by designing and analyzing simple, efficient, randomized approximation algorithms for several fundamental linear algebraic tasks and, in addition, demonstrate their usefulness and applicability to matrix computations and graph theoretic problems.
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Organization of the Thesis}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Below, we outline the structure of this thesis and highlight the contributions of the individual chapters. The thesis can be divided into three parts. The first part, consisting mainly of Chapter~\ref{chap:rnla}, concentrates on the design and analysis of several randomized linear algebraic primitives. The second part (Chapter~\ref{chap:ma}) demonstrates the application of such linear algebraic tools to several matrix computations. Finally, the third part (Chapter~\ref{chap:graph}) discusses the application of such primitives to graph theoretic problems.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Chapter~\ref{chap:rnla}: Randomized Approximate Linear Algebraic Primitives}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Chapter~\ref{chap:rnla} discusses randomized linear algebraic primitives such as approximate matrix multiplication, approximate orthogonal projection, approximate vector orthonormalization and approximate computation of a particular notion of distance between two linear subspaces. Below we briefly outline the main contributions of this chapter.
+%
+
+%
+The research of~\cite{lowrank:FKV} focuses on using non-uniform row sampling to speed-up the running time of several matrix computations. The subsequent developments of~\cite{matrixmult:drineas,lowrank:drineas, matrixdecomp:drineas} also study the performance of Monte-Carlo algorithms on primitive matrix algorithms including the matrix multiplication problem with respect to the Frobenius norm, see also~\cite{lowrank:rankone:VR}. Sarlos~\cite{sarlos} extended (and improved) this line of research using random projections. Here, following the above line of research, we improve the analysis of the above randomized algorithms for approximating matrix multiplication with respect to the operator norm.
+%
+
+%
+In addition, a randomized iterative algorithm for approximately computing orthogonal projections is presented. That is, given any vector and linear subspace represented as the column span of a matrix $\matA$, the proposed algorithm converges exponentially to the orthogonal projection of the given vector onto the column span of $\matA$. The convergence rate of the algorithm depends, roughly speaking, on the condition number of $\matA$.
+%
+
+%
+Based on the aforementioned approximate orthogonal projection algorithm, we present a randomized iterative, amenable to parallel implementation, algorithm for orthonormalizing a set of high dimensional vectors. The algorithm might be effective compared to the classical Gram Schmidt orthonormalization for the case of sparse and sufficiently well-conditioned set of vectors.
+%
+
+%
+Finally, an efficient randomized algorithm for approximating the principal angles and principal vectors between two subspaces is presented. To the best of our knowledge, the proposed algorithm is the first provable accurate approximation algorithm that is more efficient than the state-of-the-art exact algorithms~\cite{GZ95} for the case of very high-dimensional subspaces.
+\begin{center}
+This chapter is based on joint work with Freris~\cite{REK} and on joint work with Avron, Boutsidis and Toledo~\cite{approxCCA}
+\end{center}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Chapter~\ref{chap:ma}: Matrix Algorithms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+In Chapter~\ref{chap:ma}, we present randomized and provable accurate approximate algorithms for the problems of linear regression and element-wise matrix sparsification. Moreover, we analyze an efficient deterministic algorithm for selecting a small subset of vectors that are in isotropic position. Below, we briefly outline the main contributions of this chapter.
+%
+
+%
+We present a randomized iterative algorithm that, given any system of linear equations, exponentially converges in expectation to the minimum Euclidean norm least squares solution. The expected number of arithmetic operations required to obtain an estimate of given accuracy is proportional to the square condition number of the system multiplied by the number of non-zeros entries of the input matrix. The proposed algorithm which we call \emph{randomized extended Kaczmarz} is an extension of the randomized Kaczmarz method that was analyzed by Strohmer and Vershynin and resolves a question left open in~\cite{SV06,RK}.
+%
+
+%
+Given a set of vectors in isotropic position, we present an efficient deterministic algorithm for selecting a subset of thes vectors that are approximately close to isotropic position. The proposed algorithm builds on important and strong results from numerical linear algebra including the Fast Multipole Method~\cite{FMM:CGR} (FMM) and eigenvalue solvers of matrices after rank-one updates~\cite{Gu:update}.
+%
+
+%
+Element-wise matrix sparsification was pioneered by Achlioptas and McSherry~\cite{matrix:sparsification:AM01,matrix:sparsification:optas}. Achlioptas and McSherry described sampling-based algorithms that select a small number of entries from an input matrix $\matA $ to construct a sparse sketch $\widetilde{\matA} $, which is close to $\matA$ in the operator norm. We present a simple matrix sparsification algorithm that achieves the best known upper bounds for element-wise matrix sparsification and its analysis is based on matrix concentration inequalities. Moreover, using the matrix hyperbolic cosine algorithm (Section~\ref{sec:balancing}), we present the first deterministic algorithm and strong sparsification bounds for symmetric matrices that have an approximate diagonally dominant property.
+\begin{center}
+This chapter is based on joint work with Magen~\cite{chernoff:matrix_valued:MZ11}, on joint work with Drineas~\cite{matrix:sparsification:IPL2011} and on joint work with Freris~\cite{REK}.
+\end{center}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection*{Chapter~\ref{chap:graph}: Graph Algorithms}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+It is well-known that linear algebra serves as an extremely useful tool for analyzing and understanding several properties of graphs, most notably graph expansion. In this chapter, we exploit such connections to design and analyze graph algorithms such as near-optimal deterministic constructions of expanding Cayley graphs, efficient deterministic algorithms for graph sparsification and Laplacian solvers under the gossip (a.k.a. epidemic) model of distributed computation.
+
+%
+First, the Alon-Roichman theorem asserts that Cayley graphs obtained by choosing a logarithmic number of group elements independently and uniformly at random are expanders~\cite{expander:AlonRoichman:orig}. Wigderson and Xiao's derandomization of the matrix Chernoff bound implies a deterministic $\OO(n^4 \log n )$ time algorithm for constructing Alon-Roichman graphs~\cite{chernoff:matrix_valued:derand:WX08}. Independently, Arora and Kale generalized the multiplicative weights update (MWU) method to the matrix-valued setting and, among other interesting implications, they improved the running time to $\OO(n^3\polylog{n})$~\cite{phdthesis:Kale:2008}. Here we further improve the running time to $\OO(n^2 \log^3 n)$ utilizing the matrix hyperbolic cosine algorithm and exploiting the group structure of the problem.
+%
+
+%
+Second, the spectral graph sparsification problem poses the question whether any dense graph can be approximated by a sparse graph while preserving all eigenvalues of the difference of their Laplacian matrices to an arbitrarily small relative error~\cite{graph:sparsifier:ICM2010}; the resulting graphs are usually called \emph{spectral sparsifiers}. An efficient randomized algorithm to construct an $(1+\eps)$-spectral sparsifier with $\OO(n\log n /\eps^2)$ edges was given in~\cite{graph:sparsifiers:eff_resistance}. Furthermore, an $(1+\eps)$-spectral sparsifier with $\OO(n/\eps^2)$ edges can be computed in $\OO(mn^3/\eps^2)$ deterministic time~\cite{graph:sparsifiers:twice_ram}. Here we present an efficient deterministic algorithm for spectrally sparsifying dense graphs. The main contribution here is the following: given a weighted dense graph $H=(V,E)$ on $n$ vertices with positive weights and $0< \eps <1$, there is a deterministic algorithm that returns an $(1+\eps)$-spectral sparsifier with $\OO(n/ \eps^2)$ edges in $\widetilde{\OO}(n^4 \log n /\eps^2$ $ \max\{ \log^2 n, 1/\eps^2 \})$ time.
+%
+
+%
+Third, we present a randomized distributed algorithm for solving Laplacian linear systems with exponential convergence in expectation under the gossip model of computation. Gossip algorithms for distributed computation are based on a gossip or rumor-spreading type of asynchronous message exchange protocol. The analysis of the proposed algorithm relies on the advances in randomized iterative least squares solvers including the randomized extended Kaczmarz method discussed in Chapter~\ref{chap:ma}.
+%
+%
+\begin{center}
+This chapter is based on joint work with Freris~\cite{CDC12} and on the work of~\cite{ICALP12}.
+\end{center}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Preliminaries}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We now introduce the mathematical notation that will be used throughout the thesis and we also present several basic results from linear algebra and probability theory. In addition, we state known facts about uniform sampling rows from matrices with orthonormal columns and we present the matrix Bernstein inequality and Minsker's version of the matrix Bernstein inequality~\cite{minsker}. Finally, we present a matrix generalization of Spencer's hyperbolic cosine algorithm~\cite{hyperbolic_cosine:Spencer}
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Basic Notation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+For an integer $m$, let $[m]:=\{1,\ldots,m\}$. We denote by $\RR, \ZZ$ and $\NN$ the reals, integers and natural numbers, respectively. For any positive number $x$, the base-$2$ logarithm and natural logarithm of $x$ is denoted by $\log(x)$ and $\ln (x)$, respectively. Occasionally, we might prefer to hide $\log\log(\cdot)$ factors under the big-Oh notation, we make this explicit by using $\widetilde{\OO}(\cdot)$. All matrices contain real entries. We use capital letters $\matA,\matB,\ldots$ to denote matrices and bold lower-case letters $\x,\y,\ldots$ to denote column vectors. We denote by $\zeromtx$, the all-zeroes matrix, $\J$ for the all-ones matrix and $\Id$ for the identity matrix and by $\e_1,\e_2,\ldots ,\e_n$ the standard basis vectors of $\reals^n$. Occasionally, we explicitly specify the dimensions of these matrices by adding a subscript, e.g., $\Id_n$ is the $n\times n $ identity matrix. $\Sym^{n\times n}$ denotes the set of symmetric matrices of size $n$. We denote the rows and columns of any $m\times n$ matrix $\matA$ by $\ar{1}, \ldots , \ar{m}$ and $\ac{1},\ldots , \ac{n}$, respectively. $\colspan{\matA}$ denotes the range (or column span) of $\matA$, i.e., $\colspan{\matA}:=\{\matA \x\ | \ \x\in\RR^n\}$ and $\colspan{\matA}^{\bot}$ denotes the orthogonal complement of $\colspan{\matA}$. Let $\x\in\reals^n$, we denote by $\diag{\x}$ the diagonal matrix containing $x_1,x_2,\ldots ,x_n$. For a square matrix $\matM$, we also write $\diag{\matM}$ to denote the diagonal matrix that contains the diagonal entries of $\matM$. Let $\x\in\reals^n$ and $\y\in\reals^n$ viewed as row or column vectors, then $\x\otimes \y$ is the $n\times n$ matrix such that $ (\x \otimes \y)_{i,j} =x_i y_j$. We denote the inner product between two vectors $\x$ and $\y$ of the same dimensions by $\ip{\x}{\y}:=\sum_{i} x_i y_i$. We denote by $[\matA ; \matB]$ the matrix obtained by concatenating the columns of $\matB$ next to the columns of $\matA$. Moreover, we denote by $\nnz{\cdot}$ the number of non-zero entries of its argument matrix.
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Linear Algebra}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The following discussion reviews several definitions and facts from linear algebra; for more details, see~\cite{book:matrix:Bhatia,book:GVL,book:matrix_analysis:HornJohnson}. Let $\matA$ be an $m\times n$ matrix of rank $r$. We denote $\norm{\matA}=\max \{ \norm{\matA \x}~|~\norm{\x} =1 \}$, $\infnorm{\matA} = \max_{i\in{[m]}} \sum_{j\in{[n]}} |\Ae{ij}|$ and by $\frobnorm{\matA}=\sqrt{\sum_{i,j}{\Ae{ij}^2}}$ the Frobenius norm of $\matA$. Also $\rank{\matA}$ and $\sr{\matA}:=\frobnorm{\matA}^2/\norm{\matA}^2$ is the rank and \emph{stable rank} of $\matA$. Observe that $\sr{\matA}\leq \rank{\matA}$. The trace of a square matrix $\matB$, i.e., the sum of its diagonal elements, is denoted as $\trace{\matB}$. A matrix $\matP$ of size $n$ is called projector if it is idempotent, i.e., $\matP^2 =\matP$.
+%
+
+% SVD, condition numbers etc...
+A symmetric matrix $\matA$ is positive semi-definite (PSD), denoted by $\zeromtx \preceq \matA$, if $\x^\top \matA \x \geq 0$ for every vector $\x$. For two symmetric matrices $\matX,\matY$, we say that $\matY\succeq \matX$ if and only if $\matY-\matX$ is a positive semi-definite (PSD) matrix. Moreover, a symmetric matrix $\matA$ of size $n$ is called \emph{diagonally dominant} if $|\matA_{ii}| \geq \sum_{j\neq i} |\matA_{ij}|$ for every $i\in{[n]}$. Given any matrix $\matA$, its \emph{dilation} is defined as $\dil{\matA} = \left[\begin{matrix}
+        \zeromtx      & \matA \\
+	\matA^\top & \zeromtx
+       \end{matrix}\right].
+$
+It is easy to verify that $\lambda_{\max}(\dil{\matA}) = \norm{\matA}$.
+%
+
+%
+Let $\matA = \matU\matSig \matV^\top$ be the truncated singular value decomposition (SVD) of $\matA$ where $\matU\in\RR^{m\times r}$ with $\matU^\top \matU = \Id_r$, $\Sigma$ is the diagonal matrix of size $r$ containing the non-zero singular values $\sigma_1(\matA),\sigma_2(\matA),\ldots , \sigma_r(\matA)$ of $\matA$ in non-increasing order, and $\matV\in\RR^{n\times r}$ with $\matV^\top \matV = \Id_r$. The singular value decomposition can be computed using $\OO(mn\min (m,n))$ arithmetic operations. Whenever the matrix $\matA$ is clear from the context, we will refer to $\sigma_1(\matA)$ and $\sigma_{\rank{\matA}}(\matA)$ as $\sigma_{\max}$ and $\sigma_{\min}$, respectively. The Moore-Pensore pseudo-inverse of $\matA$ is denoted by $\pinv{\matA}:= \matV \matSig^{-1}\matU^\top$. Recall that $\norm{\pinv{\matA}} = 1/\sigma_{\min}$.
+%We denote the inner product between two row or column vectors $\x$ and $\y$ of the same dimensions by $\ip{\x}{\y}:=\sum_{i} x_i y_i$.
+For any non-zero real matrix $\matA$, we define
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{equation}\label{eq:kappa}
+\kappaFS(\matA) := \frobnorm{\matA}^2 \norm{\pinv{\matA}}^2.
+\end{equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Related to this is the scaled square condition number introduced by Demmel in~\cite{cond:Demmel}, see also~\cite{RK}. It is easy to check that the above parameter $\kappaFS(\matA)$ is related with the condition number of $\matA$, $\cond{\matA}:= \sigma_{\max} / \sigma_{\min}$, via the inequalities: $\cond{\matA}^2 \leq \kappaFS(\matA) \leq \rank{\matA} \cdot \cond{\matA^2}^2$. We denote by $\nnz{\cdot}$ the number of non-zero entries of its argument matrix. We define the \emph{average row sparsity} and \emph{average column sparsity} of $\matA$ by $\ravg$ and $\cavg$, respectively, as follows:
+\[	\ravg := \sum_{i=1}^{m} q_i \nnz{\ar{i}}\quad\text{and}\quad \cavg := \sum_{j=1}^{n} p_{j} \nnz{\ac{j}}\]
+where $p_j := \norm{\ac{j}}^2 / \frobnorm{\matA}^2$ for every $i\in{[n]}$ and $q_i := \norm{\ar{i}}^2 / \frobnorm{\matA}^2$ for every $i\in{[m]}$. The following fact will be used in Chapter~\ref{chap:ma}.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{fact}\label{fact:xls}
+Let $\matA$ be any non-zero real $m\times n$ matrix and $\b\in\RR^m$. Denote by $\xls:= \pinv{\matA}\b$. Then $\xls = \pinv{\matA}\br$.
+\end{fact}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Finally, we frequently use the inequality $1-t\leq \exp(-t)$ for every $t\leq 1$.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection*{Functions of Matrices}
+\paragraph{Functions of Matrices.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Here we review some basic facts about matrix functions including the matrix exponential and the matrix hyperbolic cosine function, for more details see~\cite{book:Higham:Matrix_fcn}. The matrix exponential of a symmetric matrix $\matA$ is defined as $\expm{\matA} = \Id + \sum_{k=1}^{\infty} \frac{\matA^k}{k!}$. Let $\matA=\matQ\Lambda \matQ^\top$ be the eigendecomposition of $\matA$. It is easy to see that $\expm{\matA} = \matQ \expm{\Lambda} \matQ^\top$. For any square matrices $\matA$ and $\matB$ of the same size that commute, i.e., $\matA\matB=\matB\matA$, we have that $ \expm{\matA+\matB} = \expm{\matA}\expm{\matB}$. In general, when $\matA$ and $\matB$ do not commute, the following estimate is known for symmetric matrices.
+\begin{lemma}\cite{ineq:trace_exp:Golden,ineq:trace_exp:Thompson}\label{lem:ineq:golden_thompson}
+For any symmetric matrices $\matA$ and $\matB$, $\trace{\expm{ \matA + \matB}} \leq \trace{\expm{\matA}\expm{\matB}}$.
+\end{lemma}
+The following fact about matrix exponential for rank one matrices will be also useful.
+\begin{lemma}\label{lem:expm:outerprod}
+	Let $\x$ be a non-zero vector in $\reals^n$. Then $ \expm{\x \otimes \x} = \Id_n + \frac{\e^{\norm{\x}^2} - 1}{\norm{\x}^2} \x\otimes \x$.
+Similarly, $\expm{-\x \otimes \x} = \Id_n - \frac{1 - \e^{-\norm{\x}^2}}{\norm{\x}^2} \x \otimes \x$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:expm:outerprod})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The proof is immediate by the definition of the matrix exponential. Notice that $(\x \otimes \x)^k = \norm{\x}^{2(k-1)} \x\otimes \x$ for $k\geq 1$, hence
+\begin{eqnarray*}
+		\expm{\x \otimes \x}  & = & \Id + \sum_{k=1}^{\infty}{ \frac{(\x \otimes \x)^k}{k!}} \  =\  \Id + \sum_{k=1}^{\infty}{ \frac{\norm{\x}^{2(k-1)} \x\otimes \x}{k!}}
+				\ = \ \Id + \frac{\e^{\norm{\x}^2} - 1}{\norm{\x}^2} \x\otimes \x.
+\end{eqnarray*}
+Similar considerations give that $\expm{-\x\otimes \x } = \Id - \frac{1 - \e^{-\norm{\x}^2}}{\norm{\x}^2} \x \otimes \x$.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+
+%
+%
+Let us define the \emph{matrix hyperbolic cosine} function of a symmetric matrix $\matA$ as $ \coshm{\matA} := (\expm{\matA} + \expm{-\matA}) /2$. Next, we state a few properties of the matrix hyperbolic cosine.
+\begin{lemma}\label{lem:dil_vs_expm}
+Let $\matA$ be a symmetric matrix of size $n$. Then $\trace{\expm{\dil{\matA}}} = 2 \trace{ \coshm{\matA} }$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:dil_vs_expm})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Set $\matB :=\dil{\matA} = \left[ \begin{matrix} \zeromtx & \matA \\
+ \matA^\top & \zeromtx
+\end{matrix}\right]$. Notice that for any integer $k\geq 1$, $\matB^{2k} = \left[ \begin{matrix}
+ \matA^{2k} & \zeromtx \\
+ \zeromtx & \matA^{2k}
+\end{matrix}\right]$ and $
+\matB^{2k+1} = \left[ \begin{matrix}
+ \zeromtx & \matA^{2k+1} \\
+ \matA^{2k+1} & \zeromtx
+\end{matrix}\right]$. Since the odd powers of $\matB$ are trace-less, it follows that
+\begin{eqnarray*}
+      \trace{ \expm{ \matB }} &  =  &  \trace{ \Id_{2n}  + \sum_{k=1}^{\infty}  \frac{\matB^{2k}}{(2k ) !}    + \sum_{k=0}^{\infty}  \frac{\matB^{2k+1}}{(2k + 1 ) !} }
+			  \  =  \  \trace{ \Id_{2n}  + \sum_{k=1}^{\infty}  \frac{\matB^{2k}}{(2k ) !} } \\
+			  &  =  &  2 \trace{ \Id_{n}  + \sum_{k=1}^{\infty}  \frac{\matA^{2k}}{(2k ) !} }
+			  \  =  \  \trace{ \expm{\matA} + \expm{- \matA}  }
+			  \  =  \  2\trace{ \coshm{\matA}}.
+\end{eqnarray*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+\begin{lemma}\label{lem:coshm_with_proj}
+Let $\matA$ be a symmetric matrix and $\matP$ be a projector matrix that commutes with $\matA$, i.e., $\matP\matA=\matA\matP$. Then $\coshm{\matP\matA} = \matP\coshm{\matA} + \Id - \matP$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:coshm_with_proj})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+By the definition of $\coshm{\cdot}$, it suffices to show that $\expm{\matP\matA}=\matP\expm{\matA}+ \Id - \matP$,
+\begin{eqnarray*}
+	\expm{\matP\matA}= \Id + \sum_{k=1}^{\infty} \frac{(\matP\matA)^k}{k!} = \Id + \matP\sum_{k=1}^{\infty} \frac{\matA^k}{k!} = \matP\expm{\matA}+ \Id - \matP.
+\end{eqnarray*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}\label{lem:trace:incr_psd}
+For any positive semi-definite symmetric matrix $\matA$ of size $n$ and any two symmetric matrices $\matB,\matC$ of size $n$, $\matB\preceq \matC$ implies $\trace{\matA\matB} \leq \trace{\matA\matC}$.
+\end{lemma}
+\begin{proof}
+Conjugating by $\matA^{1/2}$ the PSD inequality $\matB \preceq \matC$ (Lemma~\ref{lem:pert3}), it follows that $\matA^{1/2} \matB \matA^{1/2} \preceq \matA^{1/2} \matC \matA^{1/2}$. Taking the trace operator over both sides implies that $\trace{\matA^{1/2} \matB \matA^{1/2}}  \leq \trace{\matA^{1/2} \matC \matA^{1/2}}$. To conclude use the cyclic property of the trace on both sides, i.e., $\trace{\matA^{1/2} \matB \matA^{1/2}} = \trace{\matA^{1/2} \matA^{1/2} \matB } = \trace{\matA \matB}$.
+\end{proof}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\subsection*{Functions of Matrices}
+\paragraph{Matrix Perturbation.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+The next discussion reviews a few results from matrix perturbation theory; for more details, see~\cite{book:perturbation:stewart,book:GVL,book:matrix:Bhatia}. The next lemma states that if a symmetric positive semi-definite matrix $\widetilde{\matC}$ approximates the Rayleigh quotient of a symmetric positive semi-definite matrix $\matC$, then the eigenvalues of $\widetilde{\matC}$ also approximate the eigenvalues of $\matC$.
+\begin{lemma}\label{lem:rayleight_to_eig}
+Let $0<\eps<1$. Assume $\matC$, $\widetilde{\matC}$ are $n\times n$ symmetric positive semi-definite matrices, such that the following inequality holds $ (1-\eps)\x^\top \matC \x \leq \x^\top \widetilde{\matC} \x \leq (1+\eps) \x^\top \matC \x$ for every $\x\in{\RR^n}$. Then, for $i=1,\dots, n$ the eigenvalues of $\matC$ and $\widetilde{\matC}$ are the same up-to an error factor $\eps$, i.e.,
+%
+\[(1-\eps)\lambda_i(\matC) \leq \lambda_i(\widetilde{\matC}) \leq (1+\eps) \lambda_i(\matC).\]
+%
+\end{lemma}
+\begin{proof}
+The proof is an immediate consequence of the Courant-Fischer's characterization of the eigenvalues. First notice that by hypothesis, $\matC$ and $\widetilde{\matC}$ have
+the same null space. Hence we can assume without loss of generality, that $\lambda_i(\matC), \lambda_i(\widetilde{\matC}) > 0$ for all $i=1,\dots, n$. Let $\lambda_i(\matC)$ and $\lambda_i(\widetilde{\matC})$ be the eigenvalues (in non-decreasing order) of $\matC$ and $\widetilde{\matC}$, respectively. The Courant-Fischer min-max theorem~\cite[p.~394]{book:GVL} expresses the eigenvalues as
+%%%%%%%%%%%%%%%%
+\begin{equation}\label{eqn:Courant_Fischer}
+\lambda_i(\matC) = \min_{\mathcal{S}^i}\max_{\x\in{S^i} } \frac{\x^\top \matC \x}{\x^\top \x},
+\end{equation}
+%%%%%%%%%%%%%%%%
+where the minimum is over all $i$-dimensional subspaces $\mathcal{S}^i$. Let the subspaces $\mathcal{S}^{i}_0$ and $\mathcal{S}^i_1$ where the minimum is achieved for the eigenvalues of $\matC$ and $\widetilde{\matC}$, respectively. Then, it follows that
+%
+\[
+\lambda_i (\widetilde{\matC}) = \min_{\mathcal{S}^i}\max_{\x\in{\mathcal{S}^i} } \frac{\x^\top \widetilde{\matC} \x}{\x^\top \x}\leq \max_{\x\in{S^i_0} } \frac{\x^\top \widetilde{\matC} \x}{\x^\top \matC \x} \frac{\x^\top \matC \x}{\x^\top \x} \leq (1+\eps)\lambda_i (\matC).
+\]
+and similarly,
+\[
+\lambda_i (\matC) = \min_{\mathcal{S}^i}\max_{\x\in{\mathcal{S}^i} } \frac{\x^\top \matC \x}{\x^\top \x}\leq \max_{\x\in{S^i_1} } \frac{\x^\top \matC \x}{\x^\top \widetilde{\matC} \x} \frac{\x^\top \widetilde{\matC} \x}{\x^\top \x} \leq \frac{\lambda_i (\widetilde{\matC})}{1-\eps}.
+\]
+Therefore, it follows that for $i=1,\dots , n$: $(1- \eps) \lambda_i(\matC) \leq \lambda_i(\widetilde{\matC}) \leq (1+\eps) \lambda_i(\matC)$.
+\end{proof}
+%
+We now state two known matrix perturbation results and a simple but useful property of the psd ordering.
+\begin{lemma}[Theorem 3.3 in~\cite{EI95}]\label{lem:pert1}
+Let $\matPsi \in \RR^{p \times q}$ and $ \matPhi =  \matD_L \matPsi \matD_R $ with $\matD_L \in \RR^{p \times p}$ and $\matD_R \in \RR^{q \times q}$ being non-singular matrices.
+Let $\gamma = \max\{  \norm{ \matD_L \matD_L^\top - \matI_p },  \norm{ \matD_R^\top \matD_R - \matI_q } \} $. Then, for all $i=1,\ldots,\rank{\matPsi}$:
+$  |  \sigma_i\left( \matPhi \right) -  \sigma_i\left( \matPsi \right)   |  \le \gamma \cdot  \sigma_i\left( \matPsi \right). $
+\end{lemma}
+
+\begin{lemma}[Weyl's inequality for singular values; Corollary 7.3.8 in~\cite{book:matrix_analysis:HornJohnson}]\label{lem:pert2}
+Let $\matPhi, \matPsi \in \RR^{m \times n}$. Then, for all $i=1,\ldots, \min( m,n):$
+$| \sigma_i\left(\matPhi\right)- \sigma_i\left(\matPsi\right)  |  \le \norm{\matPhi - \matPsi} $.
+\end{lemma}
+%
+
+%
+\begin{lemma}[Conjugating the PSD ordering; Observation 7.7.2 in~\cite{book:matrix_analysis:HornJohnson}]\label{lem:pert3}
+Let $\matPhi, \matPsi \in \RR^{n \times n}$ are symmetric matrices with $\matPhi \preceq \matPsi$. Then, for every $n \times m$ matrix $\matZ:$
+$\matZ^\top \matPhi \matZ \preceq \matZ^\top \matPsi \matZ$.
+\end{lemma}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Probabilistic Tools}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+We abbreviate the terms ``independently and identically distributed'' and ``almost surely'' with i.i.d. and a.s., respectively.
+
+%
+The first tool is the so-called subspace Johnson-Lindenstrauss lemma. Such a result was obtained in \cite{sarlos} (see also~\cite[Theorem~1.3]{jl:manifold}) although it appears implicitly in results extending the original Johnson Lindenstrauss lemma~\cite{JL84} (see~\cite{magen07}). The techniques for proving such a result with possible worse bound are not new and can be traced back even to Milman's proof of Dvoretsky theorem~\cite{Dvoretsky:Milman}.
+\begin{lemma}\label{lem:jl_subspace} (Subspace JL lemma \cite{sarlos})
+Let $\mathcal{W} \subseteq \RR^d$ be a linear subspace of dimension $k$ and
+$\eps\in{(0, 1/3)}$. Let $\matR$ be a $t\times d$ random sign matrix rescaled by $1/\sqrt{t}$, namely $R_{ij} = \pm 1/\sqrt{t}$ with equal probability.
+Then
+\begin{align}\label{eq:jl_subspace}
+\Prob{ (1-\eps) \norm{\w}^2 \leq \norm{\matR\w}^2 \leq (1+\eps)\norm{\w}^2,\ \forall\ \w\in\mathcal{W} } \geq 1 - c_2^k \cdot \exp (- c_1 \eps^2 t),
+\end{align}
+where $c_1 = \frac1{16 \cdot 36},c_2 = 18$.
+\end{lemma}
+\begin{proof}
+The  statement in our lemma has been proved in Corollary $11$ of~\cite{sarlos}, see also~\cite[Theorem~$1.3$]{jl:manifold} for a restatement. More precisely, repeat the proof of Corollary $11$ of~\cite{sarlos} paying attention to the constants. That is, set $\matC=\matW^\top \matR^\top \matR \matW -\matI_k$ where the column span of $\matW$ equals to $\mathcal{W}$ and $\eps_0=1/2$ in Lemma~$10$ of~\cite{sarlos}. Then, apply the JL transform~\cite{Ach03} with (rescaled) accuracy $\eps/4$ on each vector of the set $T':=\{\matW^\top \vct{x}\ |\ \vct{x} \in T \}$ where $T$ is from Lemma $10$ of~\cite{sarlos}, hence $|T'| \leq e^{k\ln (18)}$. So,
+	%
+\begin{equation}\label{ineq:sigma_preserved}
+	\Prob{\left(  \forall i = 1,\dots ,k :\  1-\eps \leq \sigma_i(\matW^\top \matR^\top \matR \matW) \leq 1+\eps \right) } \geq 1 - e^{k\ln (18) } e^{-\eps^2 r/(36 \cdot 16) } .
+\end{equation}
+%
+Therefore, whenever the event of Ineq.~\eqref{ineq:sigma_preserved} holds, it implies that $\norm{\matC} = \norm{\matW^\top \matR^\top \matR\matW - \Id_k} \leq \eps$, which is equivalent to the statement of Ineq.~\eqref{eq:jl_subspace}.
+\end{proof}
+%
+%
+%
+%
+Next we present a standard lemma that bounds the spectral norm of any matrix $\matA$ when it's multiplied by a random sign matrix that is rescaled by $1/\sqrt{t}$ presented to us by Mark Rudelson (personal communication, 2010). If random Gaussian matrices are used in the following lemma, then it is a direct consequence of Gaussian measure concentration for Lipschitz functions. The use of random sign matrices makes the argument a bit more involved, but such arguments are standard in the literature.
+\begin{lemma}\label{lem:Rudelson}
+Let $\matA$ be an $m\times n$ real matrix and fix $t\geq 1$. Let $\matR$ be a $t\times n$ random sign matrix rescaled by $1/\sqrt{t}$. For every $\tau>0$
+\begin{equation}
+ \Prob{ \norm{ \matA\matR^\top } \geq 2\frobnorm{\matA} / \sqrt{t} + 2 \norm{\matA} + \norm{\matA} \tau / \sqrt{t} }\ \leq\ e^{-\tau^2/8}.
+\end{equation}
+\end{lemma}
+\begin{proof}
+Let $\matG$ be a $t\times n$ matrix whose entries are independent Gaussian random variables. Then by the Gordon-Chev\`{e}t inequality\footnote{For example, set $\matS=\Id_t, \matT=\matA$ in \cite[Proposition~$10.1$,~p.~$54$]{HMT}.}
+\begin{align*}
+ 	\EE\norm{\matA\matG^\top} 	& \leq  \norm{\Id_t}\frobnorm{\matA} + \frobnorm{\Id_t}\norm{\matA} =   \frobnorm{\matA} + \norm{\matA}\sqrt{t}.
+\end{align*}
+
+Let $\odot$ denote the entrywise product\footnote{For any two matrices $\matB$ and $\matC$ of the same size $(\matB \odot \matC)_{ij} = \matB_{ij}\matC_{ij} $} (also known as Hadamard product) between two matrices of the same size. Write $\matG$ as $\matE \odot |\matG|$ where $\matE_{ij} = \sign{\matG_{ij}}$ and the $(i,j)$ entry of $|\matG|$ equals $ |\matG_{ij}|$. Note that $\matE$ and $|\matG|$ are independent and $\matE $ is a random sign matrix. It follows that
+\[\EE[ \matE\odot |\matG| \ |\ \matE] = \sqrt{\frac{2}{\pi}} \matE\]
+since $\EE |g| = \sqrt{2/\pi}$ for a Gaussian random variable $g$. Multiply the above from the right with $\matA^\top$ and take norms on both sides
+\[\norm{ \EE\left[ (\matE\odot |\matG|) \matA^\top \ |\ \matE\right]  }= \norm{\sqrt{\frac{2}{\pi}} \matE \matA^\top}.\]
+By Jensen's inequality, it follows that $\norm{\sqrt{\frac{2}{\pi}} \matE \matA^\top} \leq \EE \left[ \norm{(\matE\odot |\matG|) \matA^\top } \ |\ \matE \right] $. Taking expectation with respect to $\matE$, it follows that
+\[ \sqrt{\frac{2}{\pi}} \EE \norm{ \matE \matA^\top } \leq \EE \norm{\matG \matA^\top }.\]
+Since $\matE$ is a random sign matrix, it follows that
+\[\EE \norm{\matA \matR^\top} \leq  \sqrt{\frac{\pi}{2t}} \EE \norm{\matG \matA^\top } \leq 2(\frobnorm{\matA} /\sqrt{t} + \norm{\matA}).\]
+%
+%
+%
+Define the function $f:[-1,1]^{t\times n} \to \RR$ by $f(\matS) = \norm{\frac1{\sqrt{t} } \matA\matS^\top}$. The calculation above shows that $\EE f(\matS)\leq 2(\frobnorm{\matA}/\sqrt{t} + \norm{\matA})$ where the expectation is over a uniformly at random element of $\{\pm 1\}^{t\times n}$. We bound the Lipschitz constant of $f$. Let $S_1, S_2 \in [-1,1]^{t\times n}$,
+\[ |f(S_1) - f(S_2)| \leq \norm{ \frac1{\sqrt{t}} \matA (\matS_1^\top - \matS_2^\top )} \leq \frac1{\sqrt{t}} \norm{\matA} \frobnorm{\matS_1 - \matS_2}\]
+where we used the triangle inequality and standard properties of matrix norms.
+
+Since $f$ is convex and $(\norm{\matA}/\sqrt{t})$-Lipschitz as a function of the entries of $\matS$, Talagrand's measure concentration inequality for product measures~\cite[Equation~1.8]{talagrand} or~\cite[Theorem~5.9, p. 100]{book:Ledoux} yields that for every $\tau>0$
+\begin{equation*}
+\Prob{ \norm{ \matA\matR^\top } \geq \EE \norm{\matA \matR^\top} + \frac{\norm{\matA}\tau}{\sqrt{t}} } \leq \exp (-\tau^2 /8).
+\end{equation*}
+It follows that for every $\tau>0$
+\[\Prob{\norm{ \matA\matR^\top } \geq  2(\frobnorm{\matA}/\sqrt{t} + \norm{\matA}) + \norm{\matA}\tau / \sqrt{t}} \leq \exp (-\tau^2 /8).\]
+\end{proof}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Matrix Coherence and Sampling from an Orthonormal Matrix}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+Given a matrix $\matA$ with $m$ rows, the \emph{coherence} of $\matA$ is defined as $\mu(\matA)=\max_{i\in{[m]}}\norm{ \e_i^\top \matU_{\matA}  }$, where $\e_i$ is the $i$-th standard basis (column) vector of $\RR^m$. Coherence is an important quantity in the analysis of randomized matrix algorithms. Note that the coherence of $\matA$ is a property of the column space of $\matA$, and does not depend on the actual choice of $\matA$. Therefore, if $\colspan{\matA} = \colspan{\matB}$ then $\mu(\matA) = \mu(\matB)$. Furthermore, it is easy to verify that if $\colspan{\matA} \subseteq \colspan{\matB}$ then $\mu(\matA) \leq \mu(\matB)$. Finally, we mention that for every matrix $\matA$ with $m$ rows: $\rank{\matA}/m \leq \mu(\matA) \leq 1$.
+%
+
+%
+In this thesis, we quite often focus on tall-and-thin matrices, i.e. matrices with (much) more rows than columns. The following lemma formalizes that coherence affects the amount of rows needed to be uniformly sampled from a matrix with orthonormal columns so that the resulting sampled matrix remains close to orthonormal (i.e., its singular values are close to one). We need to setup the following notation before stating the next lemma. Given a subset of indices $T \subseteq [m]$, the corresponding sampling matrix $\matS$ is the $|T|\times m$ matrix obtained by discarding from $\matI_{m}$ the rows whose index is not in $T$. Note that $\matS \matA$ is the matrix obtained by keeping only the rows in $\matA$ whose index {\em appears} in $T$.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}[Sampling from Orthonormal Matrix, Corollary to Lemma~3.4 in~\cite{Tro11}]
+\label{lemma:sampling-ortho}
+Let $\matQ \in \RR^{m \times d}$ have orthonormal columns. Let $0 < \eps < 1$ and $0 < \delta < 1$. Let $r$ be an integer such that
+\[
+6 \eps^{-2} m  \mu(\matQ) \log (3d/\delta) \leq r \leq m \,.
+\]
+Let $T$ be a random subset of $[m]$ of cardinality $r$, drawn from a uniform distribution over such subsets, and let $\matS$ be the $|T|\times m$ sampling matrix corresponding to $T$ rescaled by $\sqrt{m/r}$. Then, with probability of at least $1-\delta$, for $i\in[d]$: $  \sqrt{1-\eps} \le \sigma_i(\matS \matQ) \le  \sqrt{1+\eps}$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+Apply Lemma 3.4 in~\cite{Tro11} with the following choice of parameters:
+$\ell = \alpha M \log(k/\delta),$
+$\alpha = 6/\eps^2,$ and
+$\delta_{tropp} = \eta = \eps$.
+Here, $\ell$, $\alpha$, $M$, $k$, $\eta$ are the parameters of  Lemma 3.4 in~\cite{Tro11};
+also $\delta_{tropp}$ plays the role of $\delta$, an error parameter, of  Lemma 3.4 in~\cite{Tro11}.
+$\eps$ and $\delta$ are from our Lemma.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In the above lemma, $T$ is obtained by sampling coordinates from $[m]$ \emph{without} replacement. Similar results can be shown for sampling with replacement, or using Bernoulli variables~\cite{LS:Ipsen12}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Randomized Walsh-Hadamard Transform}\label{sec:wht}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Matrices with high coherence pose a problem for algorithms based on uniform row sampling. One way to circumvent this problem is to use a coherence-reducing transformation.
+%The crucial observation is that most problems can be safely transformed using unitary matrix. This is also true for our problem: $\sigma_i(\matQ \matA, \matQ \matB) = \sigma_i(\matA, \matB)$ if $\matQ$ is unitary. If the unitary matrix is chosen correctly, it can reduce coherence.
+One popular coherence-reducing transformation is the Randomized Walsh-Hadamard Transform (RHT) matrix introduced in the paper of Ailon and Chazelle~\cite{FJlT}. We start with the definition of the deterministic Walsh-Hadamard Transform matrix. Fix an integer $m = 2^h$, for $h = 1,2,3, \ldots$. The (non-normalized) $m \times m$ matrix of the Walsh-Hadamard Transform (WHT) is defined recursively as,
+%
+\[\matH_m = \left[
+\begin{array}{cc}
+  \matH_{m/2} &  \matH_{m/2} \\
+  \matH_{m/2} & -\matH_{m/2}
+\end{array}\right],
+%
+\qquad \mbox{with} \qquad
+%
+\matH_2 = \left[
+\begin{array}{cc}
+  +1 & +1 \\
+  +1 & -1
+\end{array}\right].
+\]
+%
+The $m \times m$ normalized matrix of the Walsh-Hadamard transform is $\matH = m^{-\frac{1}{2}} \matH_m$. The recursive nature of the WHT allows us to compute $\matH \matX$ for an $m \times n$ matrix $\matX$ in time $O(m n \log(m))$.
+However, in our case we are interested in $\matS \matH \matX$ where $\matS$ is a $r$-row sampling matrix. To compute $\matS \matH \matX$ only $\OO(m n \log(r))$ operations
+suffice (Theorem 2.1 in~\cite{AL09}).
+\begin{definition}[Randomized Walsh-Hadamard Transform (RHT)]
+\label{def:rht}
+Let $m = 2^h$ for some positive integer $h$. A \emph{Randomized Walsh-Hadamard Transform (RHT)} is an $m \times m$ matrix of the form $\matTh =  \matH  \matD $
+where $\matD$ is a random diagonal matrix of size $m$ whose entries are independent random signs, and $\matH$ is a normalized Walsh-Hadamard matrix of size $m$.
+\end{definition}
+The following lemma demonstrate that the application of $\matTh$ reduces the coherence of any fixed matrix.
+\begin{lemma} [RHT bounds Coherence, Lemma 3.3 in~\cite{Tro11}]
+\label{lem:rht-reduce}
+Let $\matA$ be an $m\times n$  ($m \ge n$, $m=2^h$ for some positive integer $h$) matrix, and let $\matTh$ be an RHT. Then, with probability of at least $1-\delta$,
+\[\mu(\matTh \matA) \leq \frac1{m}\left( \sqrt{n} + \sqrt{8 \log(m / \delta)} \right)^2\,.\]
+\end{lemma}
+%} % END OF IGNORE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Pessimistic Estimators for the Matrix Bernstein}\label{sec:derand_Bernstein}
+\subsection{Matrix Concentration Inequalities}
+%\label{sec:balancing}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+In the present thesis, the analysis of several algorithms will rely on matrix probability inequalities for the sum of independent and identically distributed random matrices. Many classical probability inequalities (such as Chernoff-Hoeffding, Bernstein, Azuma, etc.) have been extended to the matrix setting~\cite{chernoff:matrix_valued:AW,chernoff:matrix_valued:Tropp}, see also~\cite{Tropp:nips} for a detailed overview. Here, we will use the matrix Bernstein inequality and Minsker's extension of the matrix Bernstein inequality~\cite{minsker}. The following version of the matrix Bernstein inequality (~\cite[Theorem~$3.2$]{recht:simple_completion}) slightly rephrased to better suit our notation will suffice for the purposes of this thesis, see also~\cite{chernoff:matrix_valued:Tropp} for improved bounds.
+%
+\begin{theorem}\label{thm:matrix_valued:Bernstein}
+Let $\matM_1,\ldots ,\matM_t$ be i.i.d. copies of a random symmetric matrix $\matM$ of size $n$ such that $\EE{ \matM}=\zeromtx_n $, $\norm{\matM}\leq \gamma$ a.s. and $\norm{\EE \matM^2 } \leq \rho^2$. Then, for any $\eps > 0$,
+%
+\begin{equation}\label{ineq:matrix_Bernstein}
+\Prob{ \norm{\frac{1}{t} \sum_{k=1}^{t} \matM_k } > \eps } \ \leq\ 2n \exp\left(-\frac{t\eps^2}{2\rho^2 + 2\gamma \eps/3}\right).
+\end{equation}
+%
+\end{theorem}
+%
+%
+Minsker proved an extension of the matrix Bernstein inequality that depends on a dimension parameter that may be smaller than the dimensions of the matrix samples~\cite{minsker} improving upon the work of~\cite{HKZ12}, see also~\cite{Oliv10} for a related bound. Here, we state the following version of Minsker's inequality which can be found in~\cite{Tropp:nips}.
+\begin{theorem}\cite[Theorem~7.3.1 combined with Equation 7.3.2]{Tropp:nips}\label{thm:Minsker}
+Let $\matX_1,\matX_2, \ldots ,\matX_t$ be a sequence of random symmetric matrices that satisfy
+\[ \EE \matX_k = 0 \quad \text{and}\quad \lambda_{\max}(\matX_k) \leq \gamma\]
+for every $k\in{[t]}$. Define $\matY = \sum_{k=1}^{t} \matX_k$. Define $d = d(\matY) = \trace{\EE( \matY^2) }/ \norm{\EE(\matY^2)}$ and $\sigma^2 = \sigma^2(\matY) = \norm{\EE(\matY^2)}$. Then, for $\tau > \sigma + \gamma /3$,
+\begin{equation}\label{ineq:Minsker}
+	\Prob{ \lambda_{\max}(\matY) \geq \tau } \leq 4 d \cdot\exp\left(-\frac{\tau^2/2}{\sigma^2 + \gamma \tau/3}\right).
+\end{equation}
+Moreover, suppose that $\EE(\matY^2) \preceq \matV$ for some positive semi-definite matrix $\matV$. Then for all $\tau> \norm{\matV}^{1/2} + \gamma /3$,
+\begin{equation}\label{ineq:Minsker2}
+	\Prob{ \lambda_{\max}(\matY) \geq \tau } \leq 4 \frac{\trace{\matV}}{\norm{\matV}} \cdot\exp\left(-\frac{\tau^2/2}{\norm{\matV} + \gamma \tau/3}\right).
+\end{equation}
+\end{theorem}
+As was noticed in~\cite[p.78]{Tropp:nips}, the bound displayed in Inequality~\eqref{ineq:Minsker} may be not easy to apply because an estimate of the parameter $d$ may not be available or possible to obtain. However, the moreover part of the above theorem (Inequality~\eqref{ineq:Minsker2}) allows more flexibility whenever Theorem~\ref{thm:Minsker} is applied.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Pessimistic Estimators for the Matrix Bernstein}\label{sec:derand_Bernstein}
+\subsection{Balancing Matrices: a matrix hyperbolic cosine algorithm}\label{sec:balancing}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+In many settings, it is desirable to convert the above matrix concentration inequalities into \emph{efficient} deterministic procedures; namely, to derandomize the proofs. Wigderson and Xiao presented an efficient derandomization of the matrix Chernoff bound by generalizing Raghavan's method of pessimistic estimators to the matrix-valued setting~\cite{chernoff:matrix_valued:derand:WX08}.
+%
+
+%
+In this section, we present a generalization of Spencer's hyperbolic cosine algorithm to the matrix-valued setting~\cite{hyperbolic_cosine:Spencer} which corresponds to a derandomization of the matrix Bernstein inequality. In an earlier preliminary manuscript~\cite{matrix:hypercosine_zouzias}, the generalization of Spencer's hyperbolic cosine algorithm was also based on the method of pessimistic estimators as in~\cite{chernoff:matrix_valued:derand:WX08}. However, here we present a proof which is based on a simple averaging argument. We should highlight a few advantages of our result compared to a recent derandomization of the matrix Chernoff inequality~\cite{chernoff:matrix_valued:derand:WX08}. First, our construction does not rely on composing two separate estimators (or potential functions) to achieve operator norm bounds and second it does not require knowledge of the sampling probabilities of the matrix samples as in~\cite{chernoff:matrix_valued:derand:WX08}. In addition, the algorithm of~\cite{chernoff:matrix_valued:derand:WX08} requires computations of matrix expectations with matrix exponentials which are in many cases computationally expensive, see~\cite[Footnote~$6$, p. $63$]{chernoff:matrix_valued:derand:WX08}. Later in this thesis (Chapters~\ref{chap:ma} and~\ref{chap:graph}), we demonstrate that overcoming these limitations leads to faster and in some cases simpler algorithms.
+%
+
+%
+We briefly describe Spencer's balancing vectors game and then generalize it to the matrix-valued setting~\cite[Lecture~$4$]{book:probmeth:Spencer}. Let a two-player perfect information game between Alice and Bob. The game consists of $n$ rounds. On the $i$-th round, Alice sends a vector $\v_i$ with $\infnorm{\v_i}\leq 1$ to Bob, and Bob has to decide on a sign $s_i\in{\{\pm 1\}}$ knowing only his previous choices of signs and $\{\v_{k}\}_{k < i}$.
+At the end of the game, Bob pays Alice $\infnorm{\sum_{i=1}^{n} s_i \v_i}$. We call the latter quantity, the \emph{value} of the game.
+%
+%
+
+%
+%
+It has been shown in~\cite{Spencer:balanc_vct} that, in the above limited online variant, Spencer's six standard deviations bound~\cite{sixDeviation:Spencer} does not hold and the best value that we can hope for is $\Omega(\sqrt{n \ln n})$. Such a bound is easy to obtain by picking the signs $\{s_i\}$ uniformly at random. Indeed, a direct application of Azuma's inequality to each coordinate of the random vector $\sum_{i=1}^{n} s_i \v_i$ together with a union bound over all the coordinates gives a bound of $\OO(\sqrt{n\ln n})$.
+%
+
+%
+Now, we generalize the balancing vectors game to the matrix-valued setting. That is, Alice now sends to Bob a sequence $\{\matM_i\}$ of symmetric matrices of size $n$ with\footnote{A curious reader may ask him/her-self why the operator norm is the right choice. It turns out the the operator norm is the correct matrix-norm analog of the $\ell_\infty$ vector-norm, viewed as the \emph{infinity} Schatten norm on the space of matrices.} $\norm{\matM_i}\leq 1$, and Bob has to pick a sequence of signs $\{s_i\}$ so that, at the end of the game, the quantity $\norm{\sum_{i=1}^{n} s_i \matM_i} $ is as small as possible. Notice that the balancing vectors game is a restriction of the balancing matrices game in which Alice is allowed to send only diagonal matrices with entries bounded in absolute value by one. Similarly to the balancing vectors game, using matrix-valued concentration inequalities, one can prove that Bob has a randomized strategy that achieves at most $\OO(\sqrt{n\ln n})$ w.p. at least $1/n$. Indeed,
+%
+%
+\begin{lemma}\label{lem:balanc_mtx}
+Let $\matM_i \in \Sym^{n\times n}$, $\norm{\matM_i} \leq 1$, $1 \leq i \leq n$. Pick $s_i^*\in{\{\pm 1\} }$ uniformly at random for every $i\in{[n]}$. Then $\norm{\sum_{i=1}^{n} s_i^* \matM_i} = \OO(\sqrt{  n \ln n})$ w.p. at least $1/n$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Lemma~\ref{lem:balanc_mtx})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We wish to apply matrix Azuma's inequality, see~\cite[Theorem~$7.1$]{chernoff:matrix_valued:Tropp}. For every $j\in{[n]}$, define the matrix-valued difference sequence $f_j: [2] \to \Sym^{n\times n}$ as $f_j(k) = (2(k -1) -1 )M_j $ with $\norm{f_j(\cdot)} \leq 1$. Let $X$ be a uniform random variable over the set $\{1,2\}$. Then $\EE_X f_j(X)= \zeromtx_n$. Set $\eps = \sqrt{10\ln (2 n^2) / n}$. Matrix-valued Azuma's inequality tells us that w.p. at least $1/n$, a random set of signs $\{s_j\}_{j\in{[n]}}$ satisfies $\norm{\frac1{n} \sum_{j=1}^{n} s_j \matM_j } \leq \eps$. Rescale the last inequality to conclude.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Now, let's assume that Bob wants to achieve the above probabilistic guarantees using a \emph{deterministic} strategy. Is it possible? We answer this question in the affirmative by generalizing Spencer's hyperbolic cosine algorithm (and its proof) to the matrix-valued setting. We call the resulting algorithm \emph{matrix hyperbolic cosine} (Algorithm~\ref{alg:matrix:hyperbolic}). It is clear that this simple greedy algorithm implies a deterministic strategy for Bob that achieves the probabilistic guarantees of Lemma~\ref{lem:balanc_mtx} (set $f_j\sim s_j \matM_j$, $t=n$ and $\eps = \OO(\sqrt{ \ln n / n})$ and notice that $\gamma,\rho^2$ are at most one).
+%
+
+%
+Algorithm~\ref{alg:matrix:hyperbolic} requires an extra assumption on its random matrices compared to Spencer's original algorithm. That is, we assume that our random matrices have uniformly bounded their ``matrix variance'', denoted by $\rho^2$. This requirement is motivated by the fact that in the applications that are studied in this paper such an assumption translates bounds that depend quadratically on the matrix dimensions to bounds that depend linearly on the dimensions.
+%
+
+%
+We will need the following technical lemma for proving the main result of this section, which is a Bernstein type argument generalized to the matrix-valued setting~ \cite{chernoff:matrix_valued:Tropp}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{lemma}\label{lem:bounding_w}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Let $f:[m] \to \Sym^{n\times n}$ with $\norm{f(i)} \leq \gamma$ for all $i\in{[m]}$. Let $X$ be a random variable over $[m]$ such that $\EE{f(X)}=\zeromtx$ and $\norm{\EE f(X)^2 } \leq \rho^2$. Then, for any $\theta >0$, $\norm{\EE [ \expm{ \dil{ \theta f(X)} }]}\ \leq\ \exp\left( \rho^2( \e^{\theta \gamma } -1 - \theta \gamma )/ \gamma^2\right).$ In particular, for any $0 < \eps < 1$, setting $\theta = \eps /\gamma$ implies that $\EE [ \expm{ \dil{ \eps f(X) / \gamma} }] \preceq \e^{\eps^2 \rho^2 / \gamma^2} \Id_{2n}$.
+\end{lemma}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Now we are ready to prove the correctness of the matrix hyperbolic cosine algorithm.
+%
+%\vspace*{-4.0ex}
+\begin{algorithm}{}
+	\caption{Matrix Hyperbolic Cosine}\label{alg:matrix:hyperbolic}
+\begin{algorithmic}[1]
+\Procedure{Matrix-Hyperbolic}{$\{f_j\}$, $\eps$, $t$}\Comment{$f_j:[m] \to \Sym^{n\times n}$ as in Theorem~\ref{thm:hypercosine:main}, $0 < \eps < 1$.}
+\State Set $\theta = \eps /\gamma $
+\For {$i=1$ to $t$}
+	\State Compute $x_i^*\in{[m]}$: $ x_i^* = \argmin_{k\in{[m]}}\trace{\coshm{ \theta \sum_{j=1}^{i-1} f_j(x_j^*) + \theta f_i(k) }} $
+\EndFor
+\State \textbf{Output:} $t$ indices $x_1^*, x_2^*, \ldots ,x_t^*$ such that $\norm{ \frac1{t} \sum_{j=1}^{t} f_j(x_j^*) } \leq \frac{\gamma \ln( 2n)}{t\eps } + \frac{\eps\rho^2}{\gamma} $
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%\vspace*{-4.0ex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:hypercosine:main}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Let $f_j:[m] \to \Sym^{n\times n}$ with $\norm{f_j(i)} \leq \gamma$ for all $i\in{[m]}$ and $j=1,2,\ldots$. Suppose that there exists independent random variables $X_1,X_2,\ldots $ over $[m]$ such that $\EE{f_j(X_j)}=\zeromtx$ and $\norm{\EE f_j(X_j)^2 } \leq \rho^2$. Algorithm~\ref{alg:matrix:hyperbolic} with input $\{f_j\},\eps, t$ outputs a set of indices $\{x_j^*\}_{j\in{[t]}}$ over $[m]$ such that $ \norm{ \frac1{t}\sum_{j=1}^{t} f_j(x_j^*)} \leq \frac{ \gamma \ln (2n)}{t\eps} +  \frac{\eps \rho^2}{\gamma}.$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:hypercosine:main})
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Using the notation of Algorithm~\ref{alg:matrix:hyperbolic}, for every $i=1,2,\ldots , t$, define recursively $\matW(i) := \theta \sum_{j=1}^{i} f_j(x_j^*)$ and the potential function $\Phi^{(i)} := 2\trace{\coshm{\matW(i)}}$. For all steps $i=1,2,\ldots , t$, we will prove that
+\begin{align}\label{ineq:barrier_incr}
+  \Phi^{(i)}   & \leq  \Phi^{(i-1)} \exp\left( \eps^2 \rho^2/\gamma^2  \right).
+\end{align}
+%
+Assume that the algorithm has fixed the first $(i-1)$ indices $x_1^*,\ldots ,x_{(i-1)}^* $. An averaging argument applied on the expression of the argmin of Step $4$ gives that
+%
+%
+\begin{align*}
+\EE_{X_i}  2\trace{\coshm{ \theta  \matW(i - 1) + \theta  f_i(X_i)}} &   =  \EE_{X_i}  \trace{\expm{ \theta \dil{ \matW(i - 1)} + \theta \dil{ f_i(X_i)} }} \\
+                                                                   & \leq    \trace{\expm{ \dil{\theta \matW(i - 1)}} \EE_{X_i} \expm{\dil{ \theta f_i(X_i)} }} \\
+                                                                   & \leq   \trace{\expm{ \dil{\theta \matW(i - 1)}}  \Id_{2n}} \exp\left( \eps^2 \rho^2 / \gamma^2 \right) \\
+                                                                   &   =    \Phi^{(i-1)} \exp\left( \eps^2 \rho^2 / \gamma^2 \right)
+\end{align*}
+%
+where in the first inequality we used Lemma~\ref{lem:dil_vs_expm} and linearity of dilation, in the second inequality we used the Golden-Thompson inequality (Lemma~\ref{lem:ineq:golden_thompson}) and linearity of trace, in the third inequality we used Lemma~\ref{lem:trace:incr_psd} together with Lemma~\ref{lem:bounding_w} and in the last equality we used again Lemma~\ref{lem:dil_vs_expm}. Since the algorithm seeks the minimum of the expression in Step $4$, it follows that
+\[\Phi^{(i)} \leq \EE_{X_i}  2\trace{\expm{ \theta \dil{ \matW(i-1)} + \theta \dil{ f_i(X_i)} }}\]
+which proves Ineq.~\eqref{ineq:barrier_incr}. Apply $t$ times Ineq.~\eqref{ineq:barrier_incr} to conclude that $\Phi^{(t)} \leq \Phi^{(0)} \exp\left( t\frac{\eps^2 \rho^2}{ \gamma^2} \right).$
+%
+Recall that $\Phi^{(0)} = 2\trace{\coshm{\zeromtx_n}} = 2\trace{\Id_n }  = 2n$. On the other hand, we can lower bound $\Phi^{(t)}$
+%
+\[\Phi^{(t)} = 2\trace{\coshm{\theta \sum_{j=1}^{t}  f_j(x_j^*)} }  \geq \exp\left(\norm{ \theta \sum_{j=1}^{t}  f_j(x_j^*)  }\right). \]
+%
+The last inequality follows since $2\trace{\coshm{ \matC}} = 2\sum_{i=1}^{n} \cosh ( \lambda_i ( \matC )) \geq 2\cosh\left(\lambda_{\max}( \matC )\right) + 2\cosh\left( \lambda_{\min}(\matC)\right)  \geq \exp (\norm{\matC})$ for any symmetric matrix $\matC$ . Take logarithms on both sides and divide by $\theta$, we conclude that $\norm{ \sum_{j=1}^{t}  f_j(x_j^*) } \leq \frac{\ln (2n)}{\theta} + t\frac{\eps^2 \rho^2}{\theta \gamma^2}$.
+%
+Rescale by $t$ the last inequality to conclude the proof.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+We conclude with an open question\footnote{The author would like to thank Toni Pitassi for posing this question.} related to Spencer's six standard deviation bound~\cite{sixDeviation:Spencer}. Does Spencer's six standard deviation bound holds under the matrix setting? More formally, given any sequence of $n$ symmetric matrices $\{\matM_i\}$ with $\norm{ \matM_i}\leq 1$, does there exist a set of signs $\{s_i\}$ so that $\norm{ \sum_{i=1}^{n} s_i \matM_i} = \OO(\sqrt{n})$?
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%
+%
+%
+%

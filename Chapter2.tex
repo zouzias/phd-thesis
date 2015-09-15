@@ -1,0 +1,916 @@
+\chapter{Randomized Approximate Linear Algebraic Primitives}\label{chap:rnla}
+%
+%
+In the present chapter\footnote{A preliminary version of Section~\ref{sec:apps:matrix_mult} appeared in~\cite{chernoff:matrix_valued:MZ11} (joint work with Avner Magen). The approximate orthogonal projection algorithm appeared in~\cite{REK} (joint work with Nick Freris), whereas the section on approximately vector orthonormalization is new. Section~\ref{sec:approxCCA} appeared online in~\cite{approxCCA} (joint work with Haim Avron, Christos Boutsidis and Sivan Toledo).} we design and analyze randomized approximation algorithms for the tasks of approximately computing the product of two matrices, approximately computing orthogonal projections, approximately orthonormalizing a set of vectors and approximately computing the principal angles between two linear subspaces.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Approximate Matrix Multiplication}\label{sec:apps:matrix_mult}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Computing the product of two square matrices is one of the most basic operation in computational mathematics. Until the 1970's it was believed that matrix multiplication requires a cubic number of operations using the naive algorithm. In his paper, Strassen presented the first sub-cubic algorithm~\cite{matrixmult:strassen}. After Strassen's surprising result, researchers believed that it might be possible to multiply two square matrices in near-linear time and hence they worked towards this direction~\cite{matrixmult:CW,matrixmult:group}, see also~\cite{matrixmult:virginia} for recent developments. Here we focus on approximately computing the matrix product of two matrices under a particular matrix norm. The algorithms that will be analyzed here originate from~\cite{mm:Cohen,MM:focs} and~\cite{sarlos}.
+%
+
+%
+The research of~\cite{lowrank:FKV} focuses on using non-uniform row sampling to speed-up the running time of several matrix computations. The subsequent developments of~\cite{matrixmult:drineas,lowrank:drineas, matrixdecomp:drineas} also study the performance of Monte-Carlo algorithms on primitive matrix algorithms including the matrix multiplication problem with respect to the Frobenius norm. Sarlos~\cite{sarlos} extended (and improved) this line of research using random projections. Most of the bounds for approximating matrix multiplication in the literature are mostly with respect to the Frobenius norm~\cite{matrixmult:drineas, sarlos, CW_stoc09}. In some cases, the techniques that are utilized for bounding the Frobenius norm also imply \emph{weak} bounds for the spectral norm, see~\cite[Theorem~4]{matrixmult:drineas} or~\cite[Corollary~11]{sarlos}. Here we prove the first non-trivial bounds on matrix multiplication under the spectral norm.
+%
+
+%
+In particular, we analyze approximation algorithms for matrix multiplication with respect to the spectral norm. Let $\matA\in{\RR^{m\times n}}$ and $\matB\in{\RR^{n \times p}}$ be two matrices and $\eps>0$ an accuracy parameter. We approximate the product $\matA \matB$ using sketches $\widetilde{\matA}\in{\RR^{m\times t}}$ and $\widetilde{\matB}\in{\RR^{t\times p}}$, where $t\ll n$, such that
+\begin{equation*}
+ \norm{\widetilde{\matA} \widetilde{\matB} - \matA \matB} \leq \eps \norm{\matA}\norm{\matB}
+\end{equation*}
+holds with sufficiently high probability. We analyze two different sampling procedures for constructing $\widetilde{\matA}$ and $\widetilde{\matB}$; one of them is done by i.i.d. non-uniform sampling rows from $\matA^\top$ and $\matB$ and the other by taking random linear combinations of their rows. We prove bounds on $t$ that depend only on the intrinsic dimensionality of $\matA$ and $\matB$, that is their rank and their stable rank. We should note that the algorithms that will be analyzed here are not new. Namely, the non-uniform sampling row/column approach traces back to the papers of~\cite{mm:Cohen,MM:focs,lowrank:rankone:VR}, and the random sign matrix approach originates from~\cite{sarlos}. The approach of approximating matrix multiplication using element-wise matrix sparsification will not be discussed here, see~\cite[Section 5]{matrixmult:drineas}.
+%
+
+%
+For achieving bounds that depend on rank when taking random linear combinations we employ standard tools from high-dimensional geometry such as the subspace Johnson-Lindenstrauss lemma (Lemma~\ref{lem:jl_subspace}). For bounds that depend on the smaller parameter of stable rank this approach itself seems weak. However, we show that\footnote{This argument was pointed out to us by Mark Rudelson.} in combination with a simple truncation argument it is amenable to provide such bounds. To handle similar bounds for row sampling, we utilize\footnote{We thank Joel Tropp for his suggestion of using Minsker's version of the matrix Bernstein inequality.} matrix concentration inequalities; more precisely we use Minsker's version of the matrix Bernstein inequality, see Theorem~\ref{thm:Minsker}. Thanks to this inequality, we are able to give bounds that depend only on the stable rank of the input matrices.
+%
+
+%
+We highlight the usefulness of our approximate matrix multiplication bounds by supplying an application in Chapter~\ref{chap:ma}. In particular, we give an approximation algorithm for the $\ell_2$-regression problem that returns an approximate solution by randomly projecting the initial problem to dimensions linear on the rank of the constraint matrix (Sections~\ref{sec:LS}).
+%
+
+%
+We now state a theorem that gives bounds on the required number of samples for approximate matrix multiplication using non-uniform row/column samples and random projections.
+%\clearpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%		Matrix Multiplication
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:matrixmult}
+Let $0< \eps < 1/2$, $0<\delta<1$, and let $\matA\in{\RR^{m\times n}}$, $\matB\in{\RR^{ n\times p}}$ both having rank and stable rank at most $r$ and $\widetilde{r}$, respectively. The
+following hold:
+\begin{enumerate}[(i)]
+ \item
+Let $\matR$ be a $t\times n$ random sign matrix rescaled by $1/\sqrt{t}$. Denote by $\widetilde{\matA}= \matA\matR^\top$ and $\widetilde{\matB}=\matR\matB$.
+\begin{enumerate}[(a)]
+ \item
+ If $t=\Omega( \frac{r}{\eps^{2}} \log (1/\delta) )$ then
+%
+\[ \mathbb{P}( \forall \x\in\RR^m, \y\in\RR^p, \  |\x^\top (\widetilde{\matA} \widetilde{\matB} - \matA \matB)\y| \leq \eps \norm{\x^\top \matA} \norm{\matB\y}) \geq 1-\delta.\]
+%
+\item
+If $t=\Omega(\frac{\widetilde{r}}{\eps^4} \log (1/\delta) )$ then
+%
+\[ \Prob{\norm{\widetilde{\matA} \widetilde{\matB} - \matA \matB} \leq \eps \norm{\matA} \norm{\matB}
+} \geq 1- \delta. \]
+%
+\end{enumerate}
+\item
+Let $p_i =\frac{\norm{\ac{i}}^2 + \norm{\Br{i}}^2 }{S} $ be a probability distribution over $[n]$, where $S=\frobnorm{\matA}^2+\frobnorm{\matB}^2$. Draw $t$ i.i.d. samples from $\{p_i\}$ and define the $n\times t$ sampling matrix $\matS$ by:
+\[
+\matS_{ij} = \begin{cases} 1/\sqrt{tp_i}  &\mbox{if j-th trial equals to i} \\
+0 & \mbox{otherwise }.
+\end{cases}
+\]
+Set $\widetilde{\matA} = \matA \matS \in\RR^{m\times t}$ and $\widetilde{\matB} = \matS^\top \matB\in\RR^{t\times p}$. If $t\geq 20\widetilde{r} \ln ( 16\widetilde{r}/\delta) /\eps^2 $, then
+%
+\[ \Prob{\norm{\widetilde{\matA} \widetilde{\matB} - \matA \matB} \leq \eps \norm{\matA} \norm{\matB} } \geq 1- \delta. \]
+%
+%
+\end{enumerate}
+\end{theorem}
+Part (\textit{i.b}) follows from (\textit{i.a}) via a truncation argument. This was pointed out to us by Mark Rudelson~(personal communication). To understand the significance and the differences between the different components of this theorem, we first note that the probabilistic event of part (\textit{i.a}) is superior to the probabilistic event of (\textit{i.b}) and (\textit{ii}). Indeed, when $\matA=\matB^\top$ the former implies that $|\x^\top (\widetilde{\matA}^\top \widetilde{\matA} - \matA^\top \matA) \x| < \eps \cdot \x^\top \matA^\top \matA \x$ for every $\x$, which is stronger than $\norm{\widetilde{\matA}^\top \widetilde{\matA} - \matA^\top \matA} \leq \eps \norm{\matA}^2$. Also notice that part (\textit{i}) is essential computationally inferior to (\textit{ii}) as it gives the same bound while it is more expensive computationally to multiply the matrices by random sign matrices than just sampling their rows. However, the advantage of part (\textit{i}) is that the sampling process is \emph{oblivious}, i.e., does not depend on the input matrices. We also note that the special case of part (\textit{ii}) where $\matA=\matB^\top$ is precisely ~\cite[Theorem~3.1]{lowrank:rankone:VR}. In its present generality Theorem~\ref{thm:matrixmult} (i) is tight as can be seen by the reduction of~\cite[Theorem~2.8]{CW_stoc09}
+\footnote{Although the reduction of \cite{CW_stoc09} deals with the Frobenius norm and it is also applicable here since $\norm{\cdot} \leq  \frobnorm{\cdot}$.}. A stronger bound of $t=\Omega( \sqrt{\sr{\matA}\sr{\matB}} \log(\sqrt{\sr{\matA}\sr{\matB}}/\delta) /\eps^2 )$ compared to the bound in Theorem~\ref{thm:matrixmult} (ii) has been obtained in~\cite{HKZ12}. The approach of~\cite{HKZ12} uses a similar extension of the matrix Bernstein inequality as Minsker's extension.
+%
+
+%
+In a nutshell, the importance of deriving tights bounds for approximate matrix multiplication lies on the fact that several linear algebraic problems can be reduced to primitive problems including matrix multiplication.
+%
+
+%
+
+Before proving Theorem~\ref{thm:matrixmult}, we give a sufficient property that a linear map must satisfy in order to guarantee such spectral matrix multiplication bounds as in Theorem~\ref{thm:matrixmult}.
+\begin{definition}
+Given a fixed subspace $\mathcal{W}$ of $\RR^n$ and any $0<\eps <1$, a linear transformation $\Pi$ from $\RR^n$ to $\RR^t$, $t<n$, is called an $\eps$-subspace embedding (with repsect to $\mathcal{W}$) if
+\[
+(1-\eps) \norm{\w}^2 \leq \norm{\Pi \w}^2 \leq (1+\eps) \norm{\w}^2,\quad \text{for all }\w\in \mathcal{W}.
+\]
+\end{definition}
+For example, Lemma~\ref{lem:jl_subspace} tells us that given any $k$-dimensional subspace of $\RR^n$, an $t\times n$ random sign matrix rescaled by $1/\sqrt{t}$ where $t=\Omega(\frac{k}{\eps^2} \log(1/\delta))$ is an $\eps$-subspace embedding with probability at least $1-\delta$. Moreover, assuming the notation of Lemma~\ref{lemma:sampling-ortho} and Lemma~\ref{lem:rht-reduce}, it follows that the randomized subsampled Hadamard transform $\matS\matTh$ (assuming the notation of the two latter lemmas) is also an $\eps$-subspace embedding with probability at least $1-\delta$ provided that $t= 12\eps^{-2}(k + \log(n/\delta))\log(k/\delta) $. The following lemma states the connection between subspace embeddings and approximate matrix multiplication.
+\begin{lemma}
+Let $\matA$ be any $m\times n$ matrix, $\matB$ be any $n \times p$ matrix, and $0<\eps <1$. If $\Pi$ is an $\eps$-subspace embedding of $\colspan{[\matA^\top\ \matB]}$, then
+\[
+\norm{\matA\Pi^\top \Pi \matB - \matA \matB} \leq \eps \norm{\matA}\norm{\matB}.
+\]
+\end{lemma}
+\begin{proof}
+Let $\matU_{\matA} \matSig_{\matA} \matV_{\matA}^\top$ and $\matU_{\matB} \matSig_{\matB} \matV_{\matB}^\top$ be the singular value decompositions of $\matA$ and $\matB$, respectively. Moreover, let $\matU$ be an $n\times (r_{\matA}+r_{\matB})$ matrix whose columns form an orthonormal basis for $\colspan{[\matA^\top\ \matB]}$. By the assumption of $\eps$-subspace embedability, it follows that
+\[
+(1-\eps) \matI \preceq \matU^\top \Pi^\top \Pi \matU \preceq (1+\eps) \matI,
+\]
+or equivalently, $\norm{\matU^\top \Pi^\top \Pi \matU - \matI } \leq \eps$. Now, it follows that
+\begin{align*}
+	\norm{\matA\Pi^\top \Pi \matB - \matA \matB} & = \norm{\matU_{\matA} \matSig_{\matA} (\matV_{\matA}^\top\Pi^\top \Pi \matU_{\matB} - \matV_{\matA}^\top \matU_{\matB} )\matSig_{\matB} \matV_{\matB}^\top } \ \leq \ \norm{\matU_{\matA} \matSig_{\matA}} \norm{\matV_{\matA}^\top\Pi^\top \Pi \matU_{\matB} - \matV_{\matA}^\top \matU_{\matB} } \norm{\matSig_{\matB} \matV_{\matB}^\top} \\
+						& = \norm{\matA} \norm{\matV_{\matA}^\top\Pi^\top \Pi \matU_{\matB} - \matV_{\matA}^\top \matU_{\matB} } \norm{\matB}
+\end{align*}
+using the SVD of $\matA$ and $\matB$, the sub-multiplicity and the unitarity invariance property of the spectral norm. Now, since the columns of $\matV_{\matA}$ are spanned by the columns of $\matU$, it follows that there exists a unitary matrix $\matW_{\matA}$, so that $\matV_{\matA} = \matU \matW_{\matA}$ with $\norm{\matW_{\matA}}^2 = \norm{\matW_{\matA}^\top \matW_{\matA}} = \norm{\matW_{\matA}^\top \matU^\top \matU\matW_{\matA}}= \norm{\matV_{\matA}}^2 =1$. Similarly, there exists $\matW_{\matB}$ so that $\matU_{\matB} = \matU \matW_{\matB}$ with $\norm{\matW_{\matB}}=1$. Using the same reasoning as above,
+\begin{align*}
+	\norm{\matV_{\matA}^\top\Pi^\top \Pi \matU_{\matB} - \matV_{\matA}^\top \matU_{\matB} } = \norm{\matW_{\matA}^\top (\matU^\top\Pi^\top \Pi \matU - \matU^\top \matU) \matW_{\matB}}  \leq  \norm{\matW_{\matA}^\top} \norm{\matU^\top\Pi^\top \Pi \matU - \matI} \norm{\matW_{\matB}} \leq \eps.
+\end{align*}
+\end{proof}
+%
+
+%
+Now, we briefly discuss the translation of the above theoretical bounds to fully specified algorithmic solutions for approximating matrix products. Recall that the input of an approximate randomized matrix multiplication algorithm is $\matA$, $\matB$, $\eps$ and $\delta$. The output of the algorithm is $\widetilde{\matA}$ and $\widetilde{\matB}$ that must satisfy $\norm{\widetilde{\matA}\widetilde{\matB} -\matA \matB } \leq \eps \norm{\matA} \norm{\matB}$ with probability at least $1-\delta$. To translate any of the above bounds to an actual algorithm, someone has to specify the sampling procedure (non-uniform row/column sampling, random sign matrices) and the parameter $t$ (number of samples/number of dimensions to project). Since computing the rank of a matrix is not an easy task (compared to matrix multiplication), the bounds that depend on the rank of the input matrices can be useful only under very restricted cases. For example, whenever a priori bounds on the rank of the input matrices are known. On the other hand, the bounds that depend on the stable rank can be of practical value since approximating the stable rank of a given matrix corresponds to approximating the ratio between its Frobenius norm and its spectral norm. Efficient (randomized) algorithms for the relative approximation of the spectral norm of a given matrix have been obtained in~\cite{KW92}. Using the methods of~\cite{KW92}, we can relatively overestimate the stable rank of the input matrices with high probability and set $t$ to this overestimate value. This approach will incur an extra constant multiplicative factor on the bounds described in Theorem~\ref{thm:matrixmult}. The following generic algorithm (Algorithm~\ref{alg:MM}) outlines the approach.
+%
+\begin{algorithm}{}
+	\caption{Generic Framework for approximate matrix multiplication}\label{alg:MM}
+\begin{algorithmic}[1]
+\Procedure{}{$\matA$, $\matB$, $\eps$, $\delta$}\Comment{$\matA\in\RR^{m\times n}, \matB\in\RR^{n\times p} $, $0<\eps <1/2$, $0<\delta < 1$}
+\State Fix sampling procedure: non-uniform row/column sampling or using random sign matrices.
+\State Overestimate/approximate the corresponding parameter $t$
+\State Compute $\widetilde{\matA}$ and $\widetilde{\matB}$ using Theorem~\ref{thm:matrixmult}
+\State Output: $\widetilde{\matA}$ and $\widetilde{\matB}$ that satisfy with probability at least $1-\delta$: $\norm{\widetilde{\matA}\widetilde{\matB} - \matA \matB} \leq \eps \norm{\matA} \norm{\matB}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%
+
+We devote the rest of the present section to prove Theorem~\ref{thm:matrixmult}.
+%
+%
+\begin{proof}(of Theorem~\ref{thm:matrixmult})
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Part (\textit{i.a}):}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We prove the following more general theorem from which Theorem~\ref{thm:matrixmult} (\textit{i.a}) follows by plugging in $t\geq \frac{2r}{c_1\eps^2} \ln (c_2) \ln(1/\delta)$ where $c_1,c_2$ is as in Theorem~\ref{thm:matrixmult:restated}.
+%%%%%%%%%%%%%%%
+\begin{theorem}\label{thm:matrixmult:restated}
+%%%%%%%%%%%%%%%
+Let $\matA\in{\RR^{m\times n}}$ and $\matB\in{\RR^{ n\times p}}$. Assume that the ranks of $\matA$ and $\matB$ are at most $r$. Let $\matR$ be a $t\times n$ random sign matrix rescaled by $1/\sqrt{t}$. Denote by $\widetilde{\matA}= \matA\matR^\top$ and $\widetilde{\matB}= \matR\matB$. The following inequality
+holds
+\[ \Prob{ \forall \x\in\RR^m, \y\in\RR^p, \quad  |\x^\top (\widetilde{\matA} \widetilde{\matB} - \matA \matB)\y| \leq \eps \norm{\x^\top \matA} \norm{\matB\y} }  \geq 1- c_2^{r} \exp (-c_1 \eps^2 t), \]
+where $c_1 = \frac1{16 \cdot 36},c_2 = 18$.
+%%%%%%%%%%%%%%%
+\end{theorem}
+%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%
+\begin{proof}
+%(of Theorem~\ref{thm:matrixmult:restated})
+%%%%%%%%%%%%%%%
+Let $\matA=\matU_{\matA}\Sigma_{\matA} \matV_{\matA}^\top$, $\matB=\matU_{\matB} \Sigma_{\matB} \matV^\top_{\matB}$ be the singular value decomposition of $\matA$ and $\matB$ respectively. Notice that $\matU_{\matA}\in{\RR^{n\times r_{\matA} } }, \matU_{\matB}\in{\RR^{n\times r_{\matB} }}$, where $r_{\matA}$ and $r_{\matB}$ is the rank of $\matA$ and $\matB$, respectively.
+%
+
+%
+Let $\x_1\in{\RR^m},\x_2\in{\RR^{p}}$ two arbitrary unit vectors. Let $\w_1= \x_1^\top \matA$ and $\w_2=\matB \x_2$. Recall that
+%
+\[\norm{\matA \matR^\top \matR\matB - \matA \matB} = \sup_{\x_1\in{\mathbb{S}^{m-1}}, \x_2\in{\mathbb{S}^{p-1}} } | \x_1^\top(\matA \matR^\top \matR\matB - \matA \matB)\x_2|.\]
+%
+We will bound the last term for any arbitrary vector. Denote with $\mathcal{V}$ the subspace\footnote{We denote by $\text{colspan}(\matA)$ the subspace generated by the columns of $\matA$.} $\text{colspan}(\matU_{\matA})\cup \text{colspan}(\matU_{\matB})$ of $\RR^n$. Notice that the size of $\text{dim}(\mathcal{V}) \leq r_{\matA} + r_{\matB} \leq 2r$. Applying Lemma~\ref{lem:jl_subspace} to $\mathcal{V}$, we get that with probability at least $1-c_2^{r}\exp(-c_1\eps^2 t)$ that
+\begin{equation}\label{eq:matrixmult}
+\forall\ \v \in{\mathcal{V}}: \  \ |\norm{\matR \v}^2- \norm{\v}^2 | \leq \eps \norm{\v}^2.
+\end{equation}
+Therefore we get that for any unit vectors $\v_1,\v_2\in{\mathcal{V}}$:
+\begin{align*}
+ \ip{\matR\v_1}{\matR\v_2}	&   =   \dfrac{\norm{ \matR\v_1 + \matR\v_2}^2-\norm{\matR\v_1 - \matR\v_2}^2}{4} \ \leq \ \dfrac{(1+\eps)\norm{\v_1+\v_2}^2-(1-\eps)\norm{\v_1-\v_2}^2}{4}\\
+  		    	&   =   \dfrac{\norm{\v_1+\v_2}^2-\norm{\v_1-\v_2}^2}{4} \ + \  \eps \dfrac{\norm{\v_1+\v_2}^2+\norm{\v_1-\v_2}^2}{4}\\
+			&   =   \ip{\v_1}{\v_2} + \eps \frac{\norm{\v_1}^2+\norm{\v_2}^2}{2}\ =\ \ip{\v_1}{\v_2} + \eps,
+\end{align*}
+where the first equality follows from the Parallelogram law, the first inequality follows from Equation~\eqref{eq:matrixmult}, and the last inequality since $\v_1,\v_2$ are unit vectors. By similar considerations we get that $\ip{\matR\v_1}{\matR\v_2}  \geq \ip{\v_1}{\v_2} - \eps$. By linearity of $\matR$, we get that
+%
+\[\forall \v_1,\v_2 \in{\mathcal{V} }: \  \ |(\matR\v_1)^\top \matR\v_2 - \v_1^\top \v_2 | \leq \eps \norm{\v_1}\norm{\v_2} .  \]
+%
+Notice that $\w_1,\w_2\in{\mathcal{V} }$, hence $ |\w_1 \matR^\top \matR \w_2 - \ip{\w_1}{\w_2}| \leq \eps \norm{\w_1}\norm{\w_2} = \eps \norm{\x_1^\top \matA}\norm{\matB\x_2}$.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Part (\textit{i.b}):}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Recall Lemma~\ref{lem:Rudelson}. Using this lemma together with Theorem~\ref{thm:matrixmult} (\textit{i.a}) and a truncation argument we can prove part (\textit{i.b}).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{proof}(of Theorem~\ref{thm:matrixmult} (\textit{i.b}))
+It suffices to prove that if $t = \Omega(\frac{\widetilde{r}}{\eps^4}\log(1/\delta))$ then $\norm{\frac{\matA}{\norm{\matA}} \matR^\top \matR \frac{\matB}{\norm{\matB}} - \frac{\matA}{\norm{\matA}} \frac{\matB}{\norm{\matB}}} \leq \eps$ with probability at least $1-\delta$. Therefore, by homogeneity assume that $\norm{\matA}=\norm{\matB}=1$. Let $\matA_k$ denote the best rank $k$ approximation of $\matA$ for any $1\leq k \leq \rank{\matA}$. Set $\theta =\lfloor  \frac{1600 \max\{ \sr{\matA}, \sr{\matB} \}}{\eps^2}\rfloor$ and fix $t= \frac{2\theta \ln(c_2)}{c_1 \eps^2} \ln(2/\delta) +  8 \ln(8/\delta)$  where $c_1,c_2$ are the constants in Theorem~\ref{thm:matrixmult:restated}. Define $\widehat{\matA} = \matA - \matA_\theta$, $\widehat{\matB} = \matB- \matB_\theta$. Since $\frobnorm{\matA}^2 = \sum_{j=1}^{\rank{\matA}} \sigma_j(\matA)^2$,
+\begin{align*}
+ 	\norm{\widehat{\matA}} \ \leq\ \dfrac{\frobnorm{\matA} }{\sqrt{\theta}} \leq \dfrac{\eps}{40}, \mbox{ and } \norm{\widehat{\matB}}	\ \leq \ \dfrac{\frobnorm{\matB} }{\sqrt{\theta}} \leq \dfrac{\eps}{40}.
+\end{align*}
+By triangle inequality, it follows that
+\begin{align}
+ 	\norm{ \widetilde{\matA} \widetilde{\matB} - \matA \matB}  &\leq  \norm{ \matA_\theta \matR^\top  \matR \matB_\theta - \matA_\theta \matB_\theta}\label{ineq:rud1} \\
+							& +  \norm{ \widehat{\matA} \matR^\top \matR \matB_\theta}   +   \norm{ \matA_\theta \matR^\top  \matR \widehat{\matB} } + \norm{ \widehat{\matA} \matR^\top \matR \widehat{\matB}} \label{ineq:rud2}\\
+						    &   +   \norm{ \widehat{\matA} \matB_\theta} + \norm{ \matA_\theta \widehat{\matB} } + \norm{ \widehat{\matA} \widehat{\matB} }\label{ineq:rud3}.
+\end{align}
+The quantities displayed in Equation~\eqref{ineq:rud3} are bounded as follows
+\begin{equation}\label{mm:rud0}
+ \norm{ \widehat{\matA} \matB_\theta} + \norm{ \matA_\theta \widehat{\matB} } + \norm{ \widehat{\matA} \widehat{\matB} } \leq \eps^2/1600 + \eps /40 +\eps /40 \leq \eps
+\end{equation}
+using standard properties of matrix norms.
+%
+
+%
+The terms displayed in Equation~\eqref{ineq:rud2} can be bounded using Lemma~\ref{lem:Rudelson}. Indeed, apply Lemma~\ref{lem:Rudelson} with $\tau = \sqrt{t}$ for each matrix $\hat{\matA}, \hat{\matB}, \matA_{\theta}, \matB_{\theta}$. Notice that $2\frobnorm{\hat{\matA}}/\sqrt{t} + 3\norm{\hat{\matA}} \leq 5\eps /40$ since $t\geq \theta$. Similarly, $2\frobnorm{\hat{\matB}}/\sqrt{t} + 3\norm{\hat{\matB}} < 5\eps / 40$. Also $2\frobnorm{\matA_\theta} /\sqrt{t} +3 \norm{\matA_\theta} \leq 4$ and similarly $2\frobnorm{\matB_\theta} /\sqrt{t} +3 \norm{\matB_\theta} < 4$. A union bound on the application of Lemma~\ref{lem:Rudelson} to $\hat{\matA}, \hat{\matB}, \matA_{\theta}$ and $\matB_{\theta}$ implies that the following event
+\begin{equation}\label{mm:rud1}
+ \left\{ \norm{\hat{\matA} \matR^\top } \geq 5\eps / 40 \right\} \cup \left\{ \norm{\matA_{\theta} \matR^\top } \geq 4 \right\} \cup \left\{ \norm{\hat{\matB} \matR } \geq 5\eps / 40  \right\} \cup \left\{ \norm{\matB_{\theta} \matR } \geq 4 \right\}
+\end{equation}
+holds with probability at most $4\exp(-t /8)$. The later probability is at most $\delta /2$ ($t\geq 8 \ln(8/\delta)$). Whenever the event~\eqref{mm:rud1} does not hold, it follows
+\[ \norm{ \widehat{\matA} \matR^\top \matR \matB_\theta}   +   \norm{ \matA_\theta \matR^\top  \matR \widehat{\matB} } + \norm{ \widehat{\matA} \matR^\top \matR \widehat{\matB}} \leq 4 \cdot 5\eps /40 + 4\cdot 5\eps /40 + 25\eps^2 / 40^2 \leq 2\eps . \]
+Finally the term on the right hand side of~\eqref{ineq:rud1} can be bounded using Theorem~\ref{thm:matrixmult} (i.a). Since $t\geq \frac{2\theta \ln(c_2)}{c_1 (\eps/10 )^2} \ln(2/\delta)$,
+\begin{equation}\label{mm:rud2}
+\Prob{ \norm{ \matA_\theta \matR^\top  \matR \matB_\theta - \matA_\theta \matB_\theta}  \geq \eps } \leq \delta /2.
+\end{equation}
+A union bound on~\eqref{mm:rud1} and~\eqref{mm:rud2} together with Inequality~\eqref{mm:rud0} implies that
+\[ \norm{ \widetilde{\matA} \widetilde{\matB} - \matA \matB} \leq \eps +  2 \eps + \eps  = 4\eps\]
+with probability at least $1-\delta$. Rescale $\eps$ to conclude.
+\end{proof}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Part (\textit{ii}):}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The proof is an application of Minsker's extension the matrix Bernstein inequality~\ref{thm:Minsker}. It suffices to prove that if $t\geq 20\widetilde{r} \ln ( 16\widetilde{r}/\delta) /\eps^2 $ then $\norm{\frac{\matA}{\norm{\matA}} \matS \matS^\top \frac{\matB}{\norm{\matB}} - \frac{\matA}{\norm{\matA}} \frac{\matB}{\norm{\matB}}} \leq \eps$ with probability at least $1-\delta$. Therefore, by homogeneity assume that $\norm{\matA}=\norm{\matB}=1$. Now, $S = \frobnorm{\matA}^2 + \frobnorm{\matB}^2 \leq 2\widetilde{r}$.
+
+Define\footnote{Recall that for any $n$ dimensional (row or column) vector $\x$ and $m$ dimensional (row or column) vector $\y$, $\x\otimes \y $ is the $n\times m$ whose $(i,j)$ entry equals to $x_i y_j$.} $\matW_i:= \frac1{p_i} \dil{\ac{i} \otimes \Br{i}} - \dil{\matA \matB}$ for every $i\in{[n]}$. Define the random matrix $\matM$ of size $m+p$ to be equal to $\matW_i$ with probability $p_i$. Clearly, $\EE \matM = \zeromtx_{(m+p)}$.
+
+Let $\matM_1,\matM_2, \ldots , \matM_t$ be i.i.d. copies of $\matM$, then the random matrix $\frac1{t} \sum_{i=1}^{t} \matM_i $ can be alternatively described using the sampling matrix $\matS$ as $\dil{\matA \matS \matS^\top \matB} - \dil{\matA \matB}$. Indeed, fix any realization of $\matS$; namely, assume that $\matS_{l_j j} = 1\sqrt{tp_j}$ for some $l_j\in{[n]}$. Then, it follows that
+%
+\[
+\dil{\matA\matS \matS^\top \matB} -\dil{\matA\matB} = \sum_{j=1}^{t} \dil{(\matA \matS_{(j))} \otimes (\matS_{(j)}^\top \matB)} - \dil{\matA\matB} = \frac1{t} \sum_{j=1}^{t} \matW_{l_j}.
+\]
+by the linearity of $\dil{\cdot}$ and the definition of $\matS$.
+%
+It follows that
+\[\lambda_{\max}(\matM) \leq \norm{\matM} = \max_{i\in{[n]}} \norm{\matW_i} \leq 1 + S \max_{i\in{[n]}} \frac{\norm{\ac{i}}\norm{\Br{i}}}{\norm{\ac{i}}^2 +\norm{\Br{i}}^2} \leq 1 + S/2  \leq = 2 \widetilde{r}\]
+where we used the arithmetic/geometric mean inequality in the numerator and the inequality $S\geq 1$. Now, we bound the second moment $\rho^2 = \norm{\EE \matM^2}$. First, notice that for any $i\in{[n]}$,
+\[\matW_i^2 = \frac1{p_i^2} \dil{\ac{i} \otimes \Br{i}}^2 - \frac1{p_i}\dil{\ac{i} \otimes \Br{i}} \dil{\matA\matB} - \dil{\matA\matB}\frac1{p_i}\dil{\ac{i} \otimes \Br{i}} +\dil{\matA\matB}^2.\]
+Therefore, $\EE\matM^2 = \sum_{i=1}^{n} p_i \matW_i^2 = \sum_{i=1}^{n}\frac1{p_i} \dil{\ac{i} \otimes \Br{i}}^2 - \dil{\matA\matB}^2 $ by linearity. Next, we upper bound $\EE\matM^2$ in the psd ordering
+\begin{align*}
+	\EE \matM^2 & \preceq \sum_{i=1}^{n}\frac1{p_i} \dil{\ac{i} \otimes \Br{i}}^2
+				\ \preceq  S \sum_{i=1}^{n} \frac1{\norm{\ac{i}}^2 + \norm{\Br{i}}^2 } \myMat{\norm{\Br{i}}^2 \ac{i}\otimes \ac{i} }{\zeromtx}{\zeromtx}{\norm{\ac{i}}^2 \Br{i} \otimes \Br{i}}\\
+				& =  S \sum_{i=1}^{n} \myMat{ \ac{i}\otimes \ac{i} }{\zeromtx}{\zeromtx}{\Br{i} \otimes \Br{i}} = S \myMat{ \matA \matA^\top}{\zeromtx}{\zeromtx}{\matB^\top \matB}
+\end{align*}
+where the first psd inequality follows by adding the psd matrix $\dil{\matA\matB}^2$, and the second psd inequality by adding the psd matrix
+\[\sum_{i=1}^{n} \frac1{p_i} \myMat{\norm{\ac{i}}^2 \ac{i}\otimes \ac{i} }{\zeromtx}{\zeromtx}{\norm{\Br{i}}^2 \Br{i} \otimes \Br{i}}.\]
+Hence $\EE \matY^2 \preceq \matV$, where
+%
+\[
+\matV := \frac{S}{t} \myMat{\matA\matA^\top}{\zeromtx}{\zeromtx}{\matB^\top \matB}.
+\]
+%
+It follows that $\norm{\matV} = S\max(\norm{\matA}^2, \norm{\matB}^2)/t  = S/t \leq 2\widetilde{r}/t$. Also, $\frac{\trace{\matV}}{\norm{\matV}} = \trace{\matA\matA^\top} + \trace{\matB^\top \matB} = \frobnorm{\matA}^2 + \frobnorm{\matB}^2 \leq 2\widetilde{r}$.
+
+Set $\matX_i = \frac1{t} \matM_i$ for every $i\in{[t]}$ in Theorem~\ref{thm:Minsker} and notice that $\matY = \sum_{i=1}^{t}\matX_i$. Moreover, $\EE \matX_i =\zeromtx$, $\norm{\matX_i}\leq 2\widetilde{r} / t$ and $\EE \matY^2 \leq \matV$. Given any $0<\eps < 1$ and $0<\delta <1$, set $t := 20 \widetilde{r} /\eps^2 \ln( 16\widetilde{r}/\delta)$. It holds that
+\[
+\norm{\matV}^{1/2} + \gamma /3 \leq \sqrt{2\widetilde{r} /t} + 2\widetilde{r}/t  = \eps \sqrt{\frac{2\widetilde{r}}{20\widetilde{r}\ln(16\widetilde{r}/\delta)}} + \frac{2\eps^2 \widetilde{r}}{60\widetilde{r}\ln(16\widetilde{r}/\delta)} \leq \eps
+\]
+using that $\ln(16\widetilde{r}/\delta) \geq 1$ for every $0<\delta < 1$. Now, we are in position to apply Theorem~\ref{thm:Minsker} (Inequality~\ref{ineq:Minsker2}) with $\tau=\eps$ and $t$ implies that (since $\eps > \norm{\matV}^{1/2} + \gamma /3 \leq \sqrt{2\widetilde{r} /t} + 2\widetilde{r}/t$)
+\begin{align}
+\Prob{ \lambda_{\max}(\matY) \geq \eps } &\leq 4 \frac{\trace{\matV}}{\norm{\matV}} \cdot\exp\left(-\frac{\eps^2/2}{\norm{\matV} + \gamma \eps/3}\right)
+										 \ \leq 8 \widetilde{r} \cdot\exp\left(-\frac{t\eps^2}{ 4\widetilde{r}  + 4\widetilde{r}/3}\right)
+										 \ \leq \delta /2 \label{mm:minsker1}
+\end{align}
+where the second inequality follows by the upper bounds on $\norm{\matV}$ and $\gamma$ and the third inequality follows by the range of values on $t$. Apply the same argument as above to the random matrix $-\matY$ to bound $\lambda_{\min}(\matY)$ as follows
+\begin{equation}\label{mm:minsker2}
+\Prob{ \lambda_{\min}(\matY) \leq  - \eps } \leq \delta / 2.
+\end{equation}
+Union bound both Inequalities~\eqref{mm:minsker1} and~\eqref{mm:minsker2} to conclude that for every $0<\eps <1$ and every $0<\delta<1$, if $t\geq 20 \widetilde{r}\ln(16\widetilde{r}/\delta)/\eps^2 $, then
+\[\Prob{ \norm{\matY}\geq \eps} \leq \delta.\]
+To conclude recall that
+\[\Prob{\norm{\matY} \geq \eps } = \Prob{ \norm{\dil{\matA\matS\matS^\top \matB- \matA\matB }} \geq \eps } = \Prob{\norm{ \matA\matS\matS^\top \matB - \matA \matB}\geq \eps }.\]
+\end{proof}
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Approximate Orthogonal Projection}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+In the present section, we present a randomized iterative algorithm (Algorithm~\ref{alg:randOP}) that, given any vector $\b$ and a linear subspace represented as the column span of a matrix $\matA$, computes an approximation to the orthogonal projection of $\b$ onto the column span of $\matA$ (denoted by $\br$, $\br=\matA\pinv{\matA}\b$). The exact version of this problem is a fundamental geometric primitive.
+%
+
+%
+The work of~\cite{ROP:CRT11} presents an efficient approximation algorithm for this problem. The main idea behind this paper was to approximately solve the overdetermined linear system $\matA \x = \b$ as an intermediate step, i.e., compute an approximate least squares solution $\tilde{\x}_{\textrm{\tiny LS}}$. Then, return $\matA \tilde{\x}_{\textrm{\tiny LS}}$ as the approximate solution since $\br=\matA\pinv{\matA}\b$. The motivation behind their work was to accelerate interior point methods for convex optimization, see~\cite{book:Wright}, since the core of interior point methods is based on a particular orthogonal projection.
+%
+\begin{algorithm}{}
+	\caption{Randomized Orthogonal Projection}\label{alg:randOP}
+\begin{algorithmic}[1]
+\Procedure{}{$\matA$, $\b$, $T$}\Comment{$\matA\in\RR^{m\times n}, \b\in\RR^m$, $T\in \NN$}
+\State Initialize $\z^{(0)} =\b$
+\For {$k=0,1,2,\ldots, T - 1 $ }
+	\State Pick $j_k\in[n]$ with probability $p_j:=\norm{\ac{j}}^2/\frobnorm{\matA}^2,\ j\in [n]$
+	\State Set $ \z^{(k+1)} = \left(\Id_m - \frac{\ac{j_k} \ac{j_k}^\top }{\norm{\ac{j_k}}^2}\right) \z^{(k)}$
+\EndFor
+\State Output $\z^{(T)}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%
+Algorithm~\ref{alg:randOP} is iterative. Initially, it starts with $\z^{(0)}=\b$. At the $k$-th iteration, the algorithm randomly selects a column $\ac{j}$ of $\matA$ for some $j$, and updates $\z^{(k)}$ by projecting it onto the orthogonal complement of the space of $\ac{j}$. The claim is that randomly selecting the columns of $\matA$ with probability proportional to their square norms implies that the algorithm converges to $\bc$ in expectation. After $T$ iterations, the algorithm outputs $\z^{(T)}$ and by orthogonality $\b-\z^{(T)}$ serves as an approximation for $\br$. The next theorem bounds the expected rate of convergence for Algorithm~\ref{alg:randOP}.
+%
+%
+\begin{theorem}\label{thm:randOP}
+Let $\matA\in\RR^{m\times n}$, $\b\in\RR^m$ and $T>1$ be the input to Algorithm~\ref{alg:randOP}. Fix any integer $T\geq k>0$. In exact arithmetic, after $k$ iterations of Algorithm~\ref{alg:randOP} it holds that
+\[\EE \norm{\z^{(k)} - \bc }^2 \leq \left(1 -\frac1{\kappaFS(\matA)}\right)^k  \norm{\br}^2.\]
+Moreover, each iteration of Algorithm~\ref{alg:randOP} requires in expectation (over the random choices of the algorithm) at most $5\cavg(\matA)$ arithmetic operations.
+\end{theorem}
+\begin{remark}\label{rem:randOP}
+A suggestion for a stopping criterion for Algorithm~\ref{alg:randOP} is to regularly check: $ \frac{\norm{\matA^\top \z^{(k)}}}{\frobnorm{\matA} \norm{\z^{(k)}}} \leq \eps$ for some given accuracy $\eps>0$. It is easy to see that whenever this criterion is satisfied, it holds that $\norm{\bc-\z^{(k)} } / \norm{\z^{(k)}} \leq \eps \kappaF(\matA)$, i.e., $\b-\z^{(k)}\approx \br$.
+\end{remark}
+%
+
+%
+We devote the rest of this subsection to prove Theorem~\ref{thm:randOP}. Define $\matP (j):= \Id_m - \frac{\ac{j} \ac{j}^\top}{\norm{\ac{j}}^2}$ for every $j\in [n]$. Observe that $\matP (j) \matP (j) = \matP (j)$, i.e., $\matP (j)$ is a projector matrix. Let $X$ be a random variable over $\{1,2,\ldots, n\}$ that picks index $j$ with probability $\norm{\ac{j}}^2/\frobnorm{\matA}^2$. It is clear that $\EE [\matP(X)] = \Id_m - \matA\matA^\top /\frobnorm{\matA}^2$. Later we will make use of the following fact.
+%
+%
+\begin{fact}\label{lem:technical}
+For every vector $\vecu$ in the column space of $\matA$, it holds $\norm{\left(\Id_m - \frac{\matA\matA^\top }{\frobnorm{\matA}^2}\right) \vecu} \leq \left(1 - \frac{\sigma^2_{\min}}{\frobnorm{\matA}^2} \right) \norm{\vecu}$.
+\end{fact}
+%
+%
+
+%
+Define $\e^{(k)}:= \z^{(k)} - \bc$ for every $k\geq 0$. A direct calculation implies that
+\[\e^{(k)} = \matP (j_k) \e^{(k-1)}.\]
+Indeed, $\e^{(k)} = \z^{(k)} - \bc = \matP(j_k) \z^{(k-1)} - \bc = \matP(j_k) (\e^{(k-1)} + \bc ) - \bc = \matP(j_k) \e^{(k-1)}$ using the definitions of $\e^{(k)}$, $\z^{(k)}$, $\e^{(k-1)}$ and the fact that $\matP (j_k) \bc = \bc$ for any $j_k\in{[n]}$. Moreover, it is easy to see that for every $k\geq0$ $\e^{(k)}$ is in the column space of $\matA$, since $\e^{(0)} = \b - \bc = \br\in \colspan{\matA} $, $\e^{(k)}= \matP (j_k) \e^{(k-1)}$ and in addition $\matP(j_k)$ is a projector matrix for every $j_k\in [n]$.
+
+Let $X_1,X_2,\ldots $ be a sequence of independent and identically distributed random variables distributed as $X$. For ease of notation, we denote by $\EE_{k-1}[\cdot] = \EE_{X_k} [\cdot\ |\ X_1, X_2, \ldots, X_{k-1}]$, i.e., the conditional expectation conditioned on the first $(k-1)$ iteration of the algorithm. It follows that
+\begin{align*}
+	\EE_{k-1} \norm{ \e^{(k)}}^2 &  =   \EE_{k-1} \norm{ \matP (X_k) \e^{(k-1)} }^2 \ = \ \EE_{k-1} \ip{ \matP (X_k) \e^{(k-1)} }{ \matP (X_k) \e^{(k-1)} } \\
+							 &  =   \EE_{k-1} \ip{\e^{(k-1)} }{ \matP (X_k)\matP (X_k) \e^{(k-1)} } \ = \  \ip{\e^{(k-1)} }{ \EE_{k-1} [\matP (X_k)] \e^{(k-1)} } \\
+							 &\leq  \norm{\e^{(k-1)}} \norm{ \left(\Id_m - \frac{\matA\matA^\top }{\frobnorm{\matA}^2}\right) \e^{(k-1)} }
+							 \ \leq \ \left(1 - \frac{\sigma^2_{\min}}{\frobnorm{\matA}^2}\right) \norm{\e^{(k-1)}}^2
+\end{align*}
+where we used linearity of expectation, the fact that $\matP (\cdot)$ is a projector matrix, Cauchy-Schwarz inequality and Fact~\ref{lem:technical}. Repeating the same argument $k-1$ times we get that
+\[\EE\norm{ \e^{(k)}}^2 \leq \left(1 -  \frac1{\kappaFS(\matA)}\right)^k \norm{\e^{(0)}}^2.\]
+%
+Note that $\e^{(0)} = \b - \bc = \br$ to conclude.
+%Set $k\geq \kappaFS(\matA)\ln(\norm{\br}^2 /\eps^2)$ and recall the inequality $1-t \leq \exp(-t)$ for $t \leq 1$ to conclude.
+%
+
+%
+Step $5$ can be rewritten as $\z^{(k+1)} = \z^{(k)} - \left(\ip{\ac{j_k}}{\z^{(k)}} / \norm{\ac{j_k}}^2\right) \ac{j_k}$. At every iteration, the inner product and the update from $\z^{(k)}$ to $\z^{(k+1)}$ require at most $5\nnz{\ac{j_k}}$ operations for some $j_k\in{[n]}$; hence in expectation each iteration requires at most $\sum_{j=1}^{n}  p_j 5\nnz{\ac{j}} = 5\cavg(\matA)$ operations.
+%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Approximate Orthonormalization}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Given a set of column vectors $\{\ac{1},\ac{2},\ldots , \ac{n}\}\subset \RR^m$ forming an $m\times n$ real matrix $\matA$, the problem of computing an orthonormal basis for their span is a fundamental computational primitive in numerical linear algebra. It is the main ingredient, in direct algorithms for solving least squares~\cite{book:Bjork}, in iterative linear system solver such as GMRES~\cite{book:Saad}, and in eigenvalue algorithms such as the Arnoldi process to name a few. Due to numerical issues and finite precision representation of real numbers, exact orthonormalization is not feasible in general\footnote{A modified version of the classical Gram-Schmidt is known to be numerically stable~\cite{QR:numerics}.}. A natural relaxation of the exact orthonormalization problem is to require approximate orthogonality. In this section, we study the problem of computing an approximate orthonormal basis of a set of vectors, i.e., a set of basis vectors whose pair-wise inner products is close to zero. We mainly focus on iterative algorithms.
+%
+
+%
+There is a rich body of work on iterative algorithms for approximate orthonormalization. In 1970, Kovarik proposed two iterative algorithms for approximate orthonormalization that have quadratic convergence~\cite{QR:Kovarik}. The main drawback of Kovarik's algorithms is that each iteration is computational expensive, i.e., Algorithm B of~\cite{QR:Kovarik} requires matrix inversion, see~\cite{QR:Popa} and references therein for several improvements. Although, the aforementioned algorithms are interesting from a theoretical point of view, they are inferior compared to the classical solutions in terms of computational efficiency.
+%
+
+%
+It has been observed that Gram-Schmidt may produce a set of vectors which is far from being orthogonal under finite precision computations~\cite{QR:Bj67}. Such issues motivated researchers to study iterative versions of the Gram-Schmidt process where each step of the process is iteratively applied until a desired accuracy has been achieved. Iterative Gram-Schmidt algorithms with improved orthogonality have been proposed in~\cite{QR:DGKS} and~\cite{QR:Ruhe}, see also~\cite{QR:Hoffman,QR:numericsII} and~\cite{QR:USSR}.
+%
+
+%
+Finally, to the best of our knowledge, Rokhlin and Tygert implicitly presented the first randomized algorithm for approximately orthonormalizing a set of vectors~\cite{RT08}. Assume that $m\gg n$, the algorithm of~\cite{RT08} proceeds as follows: First, it randomly projects the columns of $\matA$ using the subsampled randomized Fourier transform\footnote{The subsampled randomized Fourier transform shares similar properties with the subsampled randomized Walsh-Hadamard transform, see Definition~\ref{def:rht}. A similar bound holds by using the subsampled randomized Walsh-Hadamard transform.} to $\OO(n^2)$ dimensions. Then, the algorithm applies a QR decomposition on the projected column vectors denoted by $\widetilde{\matQ}\widetilde{\matR}$. The main argument of~\cite{RT08} is that the columns of the product $\matA \widetilde{\matR}^{-1}$ are approximately orthonormal with constant probability.
+%
+
+%
+In the following section we present a randomized, amenable to parallelization, iteratively-based algorithm for the case of vectors whose corresponding $m\times n$ matrix $\matA$ is sparse and sufficiently well-conditioned.
+
+
+%$\matQ \matR$ be the QR decomposition of $\matA$, i.e, $\matQ$ is an $m\times n $ matrix with orthonormal columns that spans $\colspan{\matA}$ and $\matR$ is an $n\times n$ upper triangular non-singular matrix. Recall that the classical Gram-Schmidt process for computing the QR decomposition requires $\OO(mn^2)$ operations.
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{A Randomized Parallel Orthonormalization Algorithm}\label{sec:result}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+In this section, we analyze a randomized algorithm for approximate vector orthonormalization. The main feature of the algorithm is that it is amenable to a parallel implementation; a feature that is not present on the classical Gram-Schmidt process. Due to the approximate nature of the algorithm, the algorithm will not be able to distinguish between a set of vectors which is linearly dependent and a set which is close to being linearly dependent. We define the above notion of ``closeness'' by saying that a matrix $\matA$ containing as columns a set of $n$ vectors is \emph{$\gamma$-orthogonalizable}, if the norm of the projection of $\ac{i+1}$ onto the complement of the span of $\{\ac{1},\ldots ,\ac{i}\}$ is at least $\gamma\norm{\ac{i+1}}$ for every $i\in{[n-1]}$. More concisely, if $\norm{(\Id - \matA_{[i]}\pinv{(\matA_{[i]})})\ac{i+1}} \geq \gamma \norm{\ac{i+1}}$ for every $i\in{[n-1]}$, where $\matA_{[i]}$ is the $m\times i$ matrix containing the first $i$ columns of $\matA$. To justify the definition above, we note that any matrix $\matA$ with linearly independent columns is a $\gamma$-orthogonalizable matrix for some $\gamma>0$. However, the discussion here involves approximate algorithms for distinguishing between linear dependence and independence, therefore we need a more robust notion than the notion of linear independence. The above definition captures this requirement by enforcing that the projection of any column vector into the span of all prior column vectors is not being negligible.
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{algorithm}{}
+	\caption{Randomized Sparse GS (RSGS)}\label{alg:RSGS}
+\begin{algorithmic}[1]
+	\Procedure{RSGS}{$\matA$, $T$}\Comment{$\matA\in\RR^{m\times n}$, $\eps>0$}
+	\State Sort the columns of $\matA$ with respect to their sparsity, i.e., $\nnz{\ac{i}} \leq \nnz{\ac{j}}$ if $i<j$.
+	\State Let $\widetilde{\matQ}$ be the $m\times n$ zeroes matrix; initialize $\tqc{1} = \ac{1} / \norm{\ac{1}}$
+	\For{$i=2,\ldots, n$}
+	\State 	Apply Algorithm~\ref{alg:randOP} with input $(\matA (:, 1 : (i-1) ))$, $\ac{i}$ and $T$. Output $\z(i)$
+	\State Set $\tqc{i} = \z (i) / \norm{\z (i)}$.
+	\EndFor
+	\State \textbf{Output:} the $m\times n$ matrix $\widetilde{\matQ}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{theorem}
+%
+Let $0<\eps< 1/2$, $0<\delta <1$ and let $\matA$ be an $m\times n$ matrix which is $\eps$-orthogonalizable after the reordering of Step $2$. Algorithm~\ref{alg:RSGS} with input $T\geq \kappaFS(\matA) \ln( \frac{n}{\delta\eps^4})$ outputs, with probability at least $1-\delta$, an $m\times n$ matrix $\widetilde{\matQ}$ with the following properties:
+\begin{enumerate}[(a)]
+	\item
+	The columns of $\widetilde{\matQ}$ span $\colspan{\matA}$.
+	\item
+	The condition number of $\widetilde{\matQ}$ is bounded by $1+2\eps$. In other words, the columns of $\widetilde{\matQ}$ are nearly orthonormal, i.e., $\norm{\widetilde{\matQ}^\top \widetilde{\matQ} - \matI} \leq 2\eps$.
+\end{enumerate}
+The expected running time of Algorithm~\ref{alg:RSGS} is $\OO(\cavg(\matA) n \kappaFS(\matA) \ln(\frac{n}{\delta \eps^4}))$, which is at most $\OO(\nnz{\matA} n \cond{\matA}^2\ln(\frac{n}{\delta \eps^4}))$.
+\end{theorem}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{remark}
+	In Step $5$ of Algorithm~\ref{alg:RSGS}, it is not clear how to specify the parameter $T$ to be greater than $\kappaFS(\matA) \ln( \frac{n}{\delta\eps^4})$ without a priori knowledge of $\sigma_{\min}(\matA)$. The stopping criterion discussed in Remark~\ref{rem:randOP} can be used as an alternative termination criterion in Step 5.
+\end{remark}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We devote the rest of this section to prove the above theorem. First, we claim that the average column sparsity of $\matA_{[i]}$ for every $i\in{[n]}$ is upper bounded by the average column sparsity of $\matA$ after Step~2.
+%
+\begin{lemma}\label{lem:sparsity}
+After Step $2$ of Algorithm~\ref{alg:RSGS}, it holds that $\text{C}_{avg}(\matA_{[i-1]}) \leq \text{C}_{\text{avg}}(\matA_{[i]})$ for every $1 < i \leq n $.
+\end{lemma}
+%
+\begin{proof}
+It suffices to prove that $\frac1{\frobnorm{\matA_{[i - 1]}}^2} \sum_{j=1}^{i - 1} \norm{\ac{j} }^2 \nnz{\ac{j}}  \leq  \frac1{\frobnorm{\matA_{[i]}}^2} \sum_{j=1}^{i} \norm{\ac{j} }^2 \nnz{\ac{j}}$. Re-arranging terms, it is equivalent to
+\begin{align*}
+	\sum_{j=1}^{i - 1} \norm{\ac{j} }^2 \nnz{\ac{j}} & \leq  \left( 1 - \frac{  \norm{\ac{i}}^2 }{\frobnorm{\matA_{[i]} }^2} \right) \sum_{j=1}^{i} \norm{\ac{j} }^2 \nnz{\ac{j}} \quad \text{or}\\
+	 \frac1{\frobnorm{\matA_{[i]} }^2}  \sum_{j=1}^{i} \norm{\ac{j} }^2 \nnz{\ac{j}} & \leq  \nnz{\ac{i}}.
+\end{align*}
+%
+Recall that the columns of $\matA$ are sorted in ascending order in terms of their sparsity. Hence, the result follows since the left hand side is the expected column sparsity of $\matA_{[i]}$, which is at most $\nnz{\ac{i}}$ by Step $2$.
+\end{proof}
+Moreover, we claim that the ratio of the Frobenius norm over the smallest non-zero singular value of all the sub-matrices of $\matA$ is upper bound by the corresponding ratio of $\matA$.
+%
+%
+\begin{lemma}\label{lem:submatrixcond}
+%
+Fix $1<i\leq n$. Let $\matA$ be an $m\times n$ matrix. Then $\kappaFS(\matA_{[i]}) \leq \kappaFS(\matA)$.
+\end{lemma}
+%
+%
+\begin{proof}
+First, it is obvious that $\frobnorm{\matA_{[i]}}^2 \leq \frobnorm{\matA}^2$. It suffices to lower bound $\sigma_{\min}(\matA_{[i]})$.
+%
+\begin{align*}
+	\sigma_{\min}(\matA) = \min_{\x\neq \zero,\ \matA\x\neq\zero } \frac{\norm{\matA \x}}{\norm{\x}} \ \leq \ \min_{x_{i+1}=x_{i+2}=\ldots = x_n = 0,\ \x\neq \zero,\ \matA\x\neq\zero } \frac{\norm{\matA \x}}{\norm{\x}}\ = \ \min_{\y\neq \zero,\ \matA_{[i]}\y\neq\zero } \frac{\norm{\matA_{[i]} \y}}{\norm{\y}} = \sigma_{\min}(\matA_{[i]}).
+\end{align*}
+%
+The first inequality holds since
+\[\left\{\x\in\RR^n\ |\ \x\neq \zero,\ \matA\x\neq\zero,\ x_{i+1}=x_{i+2}=\ldots =x_n=0 \right\} \subseteq \left\{\x\in\RR^n\ |\ \x\neq \zero,\ \matA\x\neq\zero  \right\}.\]
+\end{proof}
+%
+%
+
+%
+By construction it holds that $\norm{\tqc{i}}^2 = 1$. It suffices to show that $\left|\ip{\tqc{i}}{\tqc{j}}\right| \leq 2\eps$ for any $j<i$. First notice that, for every $1< i\leq n$, $\kappaFS(\matA_{[i]}) \leq \kappaFS(\matA)$ (Lemma~\ref{lem:submatrixcond}). By the choice of $T$, apply Theorem~\ref{thm:randOP} for every $i=2,\ldots ,n$ with $\delta' = \delta/n$ and take a union bound over all $i$ to conclude that with probability at least $1-\delta$:
+\begin{align}\label{ineq:main}
+	\norm{\z (i) - (\matI_m- \matA_{[i-1]} \pinv{\matA_{[i-1]}}) \ac{i} } \leq \eps^2 \norm{ \ac{i}}\quad \text{for all }1<i\leq n.
+\end{align}
+Condition on the event that Equation~\eqref{ineq:main} holds from now on. Fix any $1<i\leq n $ and $j<i$. For notation convenience, set $\matP = (\matI_m- \matA_{[i-1]} \pinv{\matA_{[i-1]}})$ and let $\matW$ be an $m\times (i-1)$ matrix whose columns form a basis for $\text{colspan}(\matA_{[i-1]})$. Condition (b) is satisfied since:
+\begin{align*}
+\left|\ip{\tqc{i}}{ \tqc{j}}\right| &   =   \left|\ip{\tqc{i}}{ \matW \u}\right| \quad\text{where }\tqc{j} = \matW \u \text{ for some }\u\in \RR^{i-1}\\
+ 						   &   =   \left|\ip{\z(i)}{ \matW \u}\right| / \norm{\z(i)} \\
+ 						   &   =   \left|\ip{\z(i) - \matP \ac{i} + \matP \ac{i} }{ \matW \u}\right| / \norm{\z(i)} \\
+ 						   &   =   \left|\ip{\z(i) - \matP \ac{i}}{ \tqc{j}}\right| / \norm{\z(i)} \quad\text{since }\matP \matW = \zero\\
+ 						   & \leq  \norm{\z(i) - \matP \ac{i} } \norm{ \tqc{j}} / \norm{\z(i)} \quad \text{Cauchy-Schwarz Ineq.}\\
+ 						   & \leq  \eps^2 \frac{\norm{\ac{i} }}{ \norm{\z(i)}} \quad\text{Ineq.}~\eqref{ineq:main}.
+\end{align*}
+It follows that $|\ip{\tqc{i}}{ \tqc{j}} |\leq 2\eps $, since $\norm{\z(i)} \geq \norm{\matP \ac{i}} - \norm{\z(i) - \matP\ac{i}}\geq \eps \norm{\ac{i}} - \eps^2 \norm{\ac{i}} \geq \eps /2 \norm{\ac{i}}$
+using the triangle inequality, the assumption that $\matA$ is $\eps$-orthogonalizable and Ineq.~\eqref{ineq:main}, and the fact that $\eps <1/2$.
+%
+
+%
+Now, we analyze the running time of the algorithm. Lemma~\ref{lem:sparsity} tells us that, for every $1< i\leq n$, the average column sparsity of the matrices $\matA_{[i]}$ are upper bounded by $\cavg(\matA)$. Therefore, Step $5$ of Algorithm~\ref{alg:RSGS} requires in expectation $\OO(\cavg(\matA) T)$ operations.
+%
+
+%
+Observe that $\cavg(\matA) \kappaFS(\matA) = \sum_{j=1}^{n}\norm{\ac{j}}^2 \nnz{\ac{j}} / \sigma^2_{\min}(\matA) \leq \nnz{\matA} \cond{\matA}^2$, where the inequality follows since $\max_{j\in{[n]}} \norm{\ac{j}}^2 \leq \sigma_{\max}^2(\matA)$.
+%
+%
+%
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Approximate Principal Angles}\label{sec:approxCCA}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+Canonical Correlation Analysis (CCA), introduced by H. Hotelling in 1936~\cite{Hot36}, is an important technique in statistics, data analysis, and data mining. CCA  has been successfully applied in many machine learning applications, e.g. clustering~\cite{CKLS09}, learning of word embeddings~\cite{DFU11}, sentiment classification~\cite{DRFU12}, discriminant learning~\cite{SFGT12}, object recognition~\cite{KKC07} and activity recognition from video~\cite{LAMCS11}.
+In many ways CCA is analogous to Principal Component Analysis (PCA), but instead of analyzing a single data-set (in matrix form), the goal of CCA is to analyze the relation between a pair of data-sets (each in matrix form). From a statistical point of view, PCA extracts the maximum covariance directions between elements in a single matrix, whereas CCA finds the direction of maximal correlation between a pair of matrices. From a linear algebraic point of view, CCA measures the similarities between two subspaces (those spanned by the columns of each of the two matrices analyzed). From a geometric point of view, CCA computes the cosine of the \emph{principal angles} between the two subspaces.
+% I moved the Geo-PoV here since we talk about PoV here and not later.
+%
+
+%
+There are different ways to define the canonical correlations (a.k.a. principal angles) of a pair of matrices, and all these methods are equivalent~\cite{GZ95}.
+%From an application point of view, statistically-oriented definitions are often the most appropriate, but
+The following linear algebraic formulation of Golub and Zha~\cite{GZ95} serves our algorithmic point of view best.
+\begin{definition}\label{def}
+Let $\matA \in \RR^{m \times n}$ and $\matB \in \RR^{m \times \ell}$ , and assume that $p = \rank{\matA} \geq \rank{\matB} = q$.
+The {\em canonical correlations}  $\sigma_1\left( \matA, \matB \right) \ge \sigma_2\left( \matA, \matB \right) \ge \cdots \ge \sigma_q\left( \matA, \matB \right)$
+of the matrix pair $(\matA, \matB)$ are defined recursively by the following formula:
+\[ \sigma_i\left(\matA, \matB \right) = \max_{ \x \in {\cal A}_i, \y \in {\cal B}_i }  \sigma \left( \matA \x, \matB \y \right) = : \sigma\left( \matA \x_i, \matB \y_i \right)  ,\quad i=1,\ldots ,q\]
+where
+\begin{itemize}
+
+\item $ \sigma\left(\u, \v \right)  = | \u^\top \v | / \left( \norm{\u} \norm{\v} \right)$,
+
+\item $ {\cal A}_i = \{ \x : \matA \x \neq \bf{0}, \matA \x \perp \{ \matA \x_1,\ldots,\matA \x_{i-1} \} \} $,
+
+\item $ {\cal B}_i = \{ \y : \matB \y \neq \bf{0}, \matB \y \perp \{ \matB \y_1,\ldots,\matB \y_{i-1} \} \} $.
+\end{itemize}
+The unit vectors $\matA \x_1 / \norm{\matA \x_1}, \dots, \matA \x_q / \norm{\matA \x_q}, \matB \y_1 / \norm{\matB \y_1}, \dots, \matB \y_q / \norm{\matB \y_q}$ are called the {\em canonical} or {\em principal vectors}\footnote{Note that the canonical vectors are \emph{not} uniquely defined.}.
+\end{definition}
+In this section, we present a randomized algorithm that computes an additive-error approximation to all the canonical correlations of a matrix pair asymptotically faster compared to the standard method of Bj{\"o}rck and Golub~\cite{BG73}. To the best of our knowledge this is the first sub-cubic time approximation algorithm for CCA.
+
+Our algorithm is based on \emph{dimensionality reduction}: given a pair of matrices $(\matA, \matB)$, we transform the pair to a new pair
+$(\hat{\matA}, \hat{\matB})$ that has much fewer rows, and then compute the canonical correlations of the new pair exactly, e.g. using the Bj{\"o}rck and Golub algorithm. We prove that with high probability the canonical correlations of $(\hat{\matA}, \hat{\matB})$ are close to the canonical correlations of $(\matA, \matB)$.
+%Now, any CCA algorithm can be applied on $(\hat{\matA}, \hat{\matB})$; in our analysis we assume that the Bj{\"o}rck and Golub algorithm is used.
+The transformation of $(\matA, \matB)$ into $(\hat{\matA}, \hat{\matB})$ is done in two steps. First, we apply the \emph{Randomized Walsh-Hadamard Transform (RHT)} to both $\matA$ and $\matB$. This is a unitary transformation, so the canonical correlations are preserved exactly. On the other hand, we show that with high probability, the transformed matrices have their ``information'' equally spread among all the input rows, so now the transformed matrices are amenable to uniform sampling. In the second step, we uniformly sample (without replacement) a sufficiently large set of rows and rescale them to form $(\hat{\matA}, \hat{\matB})$. The combination of RHT and uniform sampling is often called \emph{Subsampled Randomized Walsh-Hadamard Transform (SRHT)} in the literature~\cite{Tro11}. Note that
+other variants of dimensionality reduction~\cite{sarlos} might be appropriate as well, but for concreteness we focus on the SRHT.
+% witout "as well" appropriate will imply "better", which we do not want to say (and don't think so)
+
+Our dimensionality reduction scheme is particularly effective when the matrices are tall-and-thin, that is they have much more rows than columns. Targeting such matrices is natural: in typical CCA applications, columns typically correspond to features or labels and rows correspond to samples or training data. By computing the CCA on as many instances as possible (as much training data as possible), we get the most reliable estimates of application-relevant quantities.
+However in current algorithms adding instances (rows) is expensive, e.g. in Bj{\"o}rck and Golub algorithm we pay $\OO(n^2+\ell^2)$ for each row. Our algorithm allows practitioners to run CCA on huge data sets because we reduce the cost of an extra row, making it not much more expensive than $\OO(n+\ell)$.
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{The Bj{\"o}rck and Golub Algorithm}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+There are quite a few algorithms to compute the canonical correlations ~\cite{GZ95}. One of the most popular methods is due to Bj{\"o}rck and Golub~\cite{BG73}. It is based on the following observation.
+\begin{theorem}\label{thm:bjork-golub}
+Suppose $\matQ \in \RR^{m \times p}$ ($m \geq p$) and $\matW \in \RR^{m \times q}$ ($m \geq q$), both having orthonormal columns. The canonical correlations of $(\matQ, \matW)$ are the top $\min\{p,q\}$ singular values of $\matQ^\top \matW$.
+\end{theorem}
+The canonical correlations of the pair $(\matA,\matB)$ is a property of the subspace spanned by $\matA$ and $\matB$. So, Theorem~\ref{thm:bjork-golub} implies that once we have a pair of matrices $\matQ$ and $\matW$ with orthonormal columns whose column space spans the same column space of $\matA$ and $\matB$, respectively, then all we need is to compute the singular values of $\matQ^\top \matW$.  Bj{\"o}rck and Golub suggest the use of QR decompositions, but  $\matU_\matA$ and $\matU_\matB$ will serve as well. Both options require $ \OO \left(m\left(n^2 + \ell^2\right) \right)$ time; we use the latter approach here.
+%
+\begin{corollary}\label{cor:bjork-golub}
+Frame Definition~\ref{def}. Then, for $i\in[q]$:
+$
+\sigma_i(\matA, \matB) = \sigma_i(\matU^\top_\matA \matU_\matB)\,.
+$
+\end{corollary}
+%
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Perturbation Bounds for Matrix Products}\label{sec:pert}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+This section states three technical lemmas which analyze the perturbation of the singular values of the product of a pair of matrices after dimensionality reduction.
+These lemmas are essential for our analysis in subsequent sections, but they might be of independent interest as well.
+%
+\begin{lemma}\label{lem:pert4}
+Let $\matA \in \RR^{m \times n}$ ($m \geq n$)  and $\matB \in \RR^{m \times \ell}$ ($m \geq \ell$). Define $\matC := [\matA ; \matB] \in \R^{m\times(n+\ell)}$, and suppose $\matC$ has rank $\omega$, so $\matU_{\matC}\in\R^{m\times\omega}$.  Let $\matS \in \R^{r \times m}$ be any matrix such that %$\rank( \matS \matU_{\matC})=\omega$
+$ \sqrt{1-\eps} \leq \sigma_{\omega}\left(\matS \matU_{\matC} \right) \leq \sigma_1\left(\matS \matU_{\matC} \right)  \le \sqrt{1+\eps},$ for some $0 < \eps < 1$ . Then, for $i=1,\dots,\min(n,\ell)$,
+\[|\sigma_i \left( \matA^\top\matB \right)  - \sigma_i\left( \matA^\top \matS ^\top \matS \matB \right)| \le \eps\cdot\norm{\matA}\cdot\norm{\matB}\,.\]
+\end{lemma}
+%
+\begin{proof}
+%\paragraph{Bounding $|\sigma_i \left( \matU_{\matA}^\top\matU_{\matB} \right)  - \sigma_i\left( \matU_{\matA}^\top \matS ^\top \matS \matU_{\matB} \right)|$.}
+Using Weyl's inequality for the singular values of arbitrary matrices (Lemma~\ref{lem:pert2}) we obtain,
+%
+\begin{align*}
+	| \sigma_i \left( \matA^\top\matB  \right)   - \sigma_i\left( \matA^\top \matS ^\top \matS \matB \right)|%\\
+	 & \leq  \norm{  \matA^\top \matS ^\top \matS \matB - \matA^\top\matB }\\
+     &  =    \norm{  \matV_{\matA}\matSig_{\matA}\left(\matU_{\matA}^\top \matS ^\top \matS \matU_{\matB}  - \matU_{\matA}^\top\matU_{\matB} \right)\matSig_{\matB} \matV^\top_{\matB} } \\
+     & \leq  \norm{  \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} - \matU_{\matA}^\top \matU_{\matB} } \cdot\norm{\matA}\cdot\norm{\matB}\,.
+\end{align*}
+%
+Next, we argue that $ \norm{  \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} - \matU_{\matA}^\top \matU_{\matB} } \le \norm{\matU_{\matC}^\top \matS^\top \matS \matU_{\matC}   - \matI_{\omega}}$.
+Indeed, we now have
+\begin{align*}
+	\norm{  \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} - \matU_{\matA}^\top \matU_{\matB} } %\\
+	& =  \sup_{\norm{\w}=1,\ \norm{\z}=1} | \w^\top \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \z - \w^\top \matU_{\matA}^\top \matU_{\matB}\z | \\
+	& =  \sup_{\norm{\x}=\norm{\y} = 1,\ \x\in{\mathcal{R}(\matU_{\matA})},\ \y\in{\mathcal{R} (\matU_{\matB})} } | \x^\top \matS^\top \matS \y - \x^\top \y | \\
+	& \leq  \sup_{\norm{\x}=\norm{\y} = 1,\ \x\in{\mathcal{R}(\matU_{\matC})},\ \y\in{\mathcal{R}(\matU_{\matB}) }} | \x^\top \matS^\top \matS \y - \x^\top \y | \\
+	& \leq  \sup_{\norm{\x}=\norm{y} = 1,\ \x\in{\mathcal{R}(\matU_{\matC})},\ \y\in{\mathcal{R}(\matU_{\matC})}} | \x^\top \matS^\top \matS \y - \x^\top \y | \\
+	&   =   \sup_{\norm{\w}=1,\ \norm{\z}=1} | \w^\top \matU_{\matC}^\top \matS^\top \matS \matU_{\matC} \z  - \w^\top\matU_{\matC}^\top \matU_{\matC} \z | \\
+	&   =   \norm{\matU_{\matC}^\top \matS^\top \matS \matU_{\matC}   - \matI_{\omega}}.
+\end{align*}
+In the above, all the equalities follow by the definition of the spectral norm of a matrix while the two inequalities follow
+because $\mathcal{R}(\matU_{\matA}) \subseteq \mathcal{R}(\matU_{\matC})$ and $\mathcal{R}(\matU_{\matB}) \subseteq \mathcal{R}(\matU_{\matC})$, respectively.
+
+To conclude the proof, recall that we assumed that for $i \in [\omega]$:
+$1-\eps \le \lambda_i \left( \matU_{\matC}^\top \matS^\top \matS \matU_{\matC} \right) \le 1+\eps$.
+\end{proof}
+
+\begin{lemma}\label{lem:pert5}
+Let $\matA \in \R^{m \times n}$ ($m \geq n$) and $\matB \in \R^{m \times \ell}$ ($m \geq \ell$).  Let $\matS \in \R^{r \times m}$ be any matrix such that $\rank{\matS \matA} = \rank{\matA}$ and $\rank{\matS \matB}=\rank{\matB}$, and all singular values of $\matS \matU_{\matA}$ and $\matS \matU_{\matB}$ are inside $[\sqrt{1-\eps},\sqrt{1+\eps}]$ for some
+$0 < \eps < 1/2$.
+Then, for $i=1,\dots,\min(n,\ell)$,
+\[|\sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) -   \sigma_i \left( \matU_{\matS\matA}^\top\matU_{\matS \matB} \right) |
+\le 2 \eps \left( 1 + \eps \right)\,.\]
+\end{lemma}
+\begin{proof}
+For every $i=1,\ldots,q$ we have,
+\begin{align*}
+|\sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) - \sigma_i \left( \matU_{\matS\matA}^\top\matU_{\matS\matB} \right) |
+ & = |\sigma_i\left(  \matSig_{\matA}^{-1} \matV_{\matA}^\top \matA^\top \matS^\top \matS \matB \matV_{\matB} \matSig_{\matB}^{-1}   \right)
+ -  \sigma_i \left( \matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matA^\top \matS^\top \matS \matB \matV_{\matS \matB} \matSig_{\matS \matB}^{-1} \right) | \\
+& \leq  \gamma \cdot \sigma_i\left( \matSig_{\matA}^{-1} \matV_{\matA}^\top\matA^\top \matS^\top \matS \matB \matV_{\matB} \matSig_{\matB}^{-1} \right)
+\ =\ \gamma \cdot \sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) \\
+& \leq \gamma \cdot \norm{ \matU_{\matA}^\top \matS^\top } \cdot  \sigma_i\left( \matS \matU_{\matB} \right)
+\leq \gamma \cdot  \left( 1 + \eps\right)
+\end{align*}
+with $ \gamma = \max(
+\norm{\matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matV_{\matA} \matSig_{\matA}^2 \matV_{\matA}^\top \matV_{\matS\matA} \matSig_{\matS\matA}^{-1} - \matI_p}  ,
+\norm{\matSig_{\matS\matB}^{-1} \matV_{\matS\matB}^\top \matV_{\matB} \matSig_{\matB}^2 \matV_{\matB}^\top \matV_{\matS\matB} \matSig_{\matS\matB}^{-1} - \matI_q}
+)\,.$
+%
+
+%
+In the above, the first inequality follows using\footnote{Set $\matPsi = \matSig_{\matA}^{-1} \matV_{\matA}^\top \matA^\top \matS^\top \matS \matB \matV_{\matB} \matSig_{\matB}^{-1}$, $\matD_L := \matSig^{-1}_{\matS \matA}\matV_{\matS\matA}^\top \matV_{\matA} \matSig_{\matA}$ and $\matD_R:=\matSig_{\matB}\matV_{\matB}^\top \matV_{\matS\matB} \matSig_{\matS\matB}^{-1}$. $\matD_L$ and $\matD_R$ are non-singular, as a product of non-singular matrices. Moreover, $\matD_L\Psi \matD_R = \matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matA^\top \matS^\top \matS \matB \matV_{\matS \matB} \matSig_{\matS \matB}^{-1}$, since $\matA = \matA \matV_{\matA}\matV_{\matA}^\top$, $\matB = \matB \matV_{\matB}\matV_{\matB}^\top$. }  Lemma~\ref{lem:pert1}, while the second follows
+because for any two matrices $\matX, \matY:$ $\sigma_i(\matX \matY) \le \norm{\matX} \sigma_i(\matY)$.
+Finally, in the third inequality we used the fact that $\norm{ \matU_{\matA}^\top \matS^\top } \le \sqrt{1+\eps}$ and $\sigma_i\left( \matS \matU_{\matB} \right) \le \sqrt{1+\eps}$.
+
+We now bound
+$\norm{\matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matV_{\matA} \matSig_{\matA}^2 \matV_{\matA}^\top \matV_{\matS\matA} \matSig_{\matS\matA}^{-1} - \matI_p}$.
+The second term in the max expression of $\gamma$ can be bounded in a similar fashion, so we omit the proof.
+\begin{align*}
+	 \norm{\matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matV_{\matA} \matSig_{\matA}^2 \matV_{\matA}^\top \matV_{\matS\matA} \matSig_{\matS\matA}^{-1} - \matI_p}
+	& =  \norm{\matSig_{\matS\matA}^{-1} \matV_{\matS\matA}^\top \matA^\top\matA  \matV_{\matS\matA} \matSig_{\matS\matA}^{-1} - \matI_p}\\
+	& =  \norm{ \matU_{\matS\matA}^\top \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} \matU_{\matS\matA}
+     -   \matU_{\matS \matA}^\top \matU_{\matS \matA}\matU_{\matS \matA}^\top \matU_{\matS \matA}}\\
+	& =  \norm{ \matU_{\matS\matA}^\top \left( \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top\right) \matU_{\matS\matA}}\\
+	& =  \norm{\tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top}
+\end{align*}
+where we used $\matA^\top \matA = \matV_{\matA} \matSig_{\matA}^2 \matV_{\matA}^\top$, $\pinv{(\matS\matA )} \matU_{\matS\matA} = \matV_{\matS\matA} \matSig_{\matS\matA}^{-1}$.
+Recall that, all the singular values of $\matS \matU_{\matA}$ are between $\sqrt{1 - \eps}$ and $\sqrt{1 + \eps}$ : $ (1-\eps) \matI_p \preceq \matU_{\matA}^\top \matS^\top \matS \matU_{\matA} \preceq (1+\eps ) \matI_p$.
+%Conjugating the PSD ordering with $\matSig_{\matA} \matV_{\matA}^\top$ (see Lemma~\ref{lem:pert3}), it follows that
+%\begin{equation}
+%(1-\eps/2) \matA^\top \matA \preceq \matA^\top \matS^\top \matS \matA \preceq (1+\eps/2) \matA^\top \matA.
+%\end{equation}
+%Conjugating the PSD ordering with $\pinv{(\matS \matA)}$ (see Lemma~\ref{lem:pert3}), it follows that
+%$$(1-\eps/2) \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}
+%\preceq \matU_{\matS \matA} \matU_{\matS \matA}^\top \preceq (1+\eps/2) \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}$$
+%since $\matS\matA \pinv{(\matS\matA)} = \matU_{\matS\matA} \matU_{\matS\matA}^\top$.
+Conjugating the PSD ordering with $\matSig_{\matA} \matV_{\matA}^\top\pinv{(\matS \matA)}$ (see Lemma~\ref{lem:pert3}), it follows that
+\begin{align*}
+ (1  - \eps) \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}
+  \preceq  \matU_{\matS \matA} \matU_{\matS \matA}^\top  \preceq  (1+\eps) \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}
+\end{align*}
+since $\matA^\top \matA = \matV_{\matA} \matSig^2_{\matA} \matV_{\matA}^\top $ and $\matS\matA \pinv{(\matS\matA)} = \matU_{\matS\matA} \matU_{\matS\matA}^\top$.
+Rearranging terms, it follows that
+\begin{align*}
+	\frac1{1+\eps} \matU_{\matS \matA} \matU_{\matS \matA}^\top  & \preceq  \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}
+	 \preceq  \frac1{1-\eps} \matU_{\matS \matA} \matU_{\matS \matA}^\top
+\end{align*}
+Since $0 < \eps < 1/2$, it holds that $\frac1{1-\eps/3}  \leq 1 + 2\eps$ and $\frac1{1+\eps} \geq 1 - \eps$, hence
+\begin{align*}
+-2\eps \matU_{\matS \matA} \matU_{\matS \matA}^\top
+\preceq  \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top
+ \preceq  2\eps \matU_{\matS \matA} \matU_{\matS \matA}^\top\,.
+\end{align*}
+This implies that $\norm{\tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )}  -  \matU_{\matS \matA} \matU_{\matS \matA}^\top}
+  \leq  2\eps \norm{ \matU_{\matS \matA} \matU_{\matS \matA}^\top } = 2\eps$. Indeed, let $\x_+$ be the unit eigenvector of the symmetric matrix  $\tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top$ corresponding to its maximum eigenvalue. The PSD ordering implies that
+\begin{align*}
+\lambda_{\max}\left( \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top \right)
+\leq  2 \eps \x_+^\top \matU_{\matS \matA} \matU_{\matS \matA}^\top \x_+ \leq 2\eps \norm{\matU_{\matS \matA} \matU_{\matS \matA}^\top}= 2\eps.
+\end{align*}
+Similarly,
+$\lambda_{\min}\left( \tpinv{(\matS\matA)} \matA^\top \matA  \pinv{(\matS\matA )} - \matU_{\matS \matA} \matU_{\matS \matA}^\top \right)> - 2\eps$, which shows the claim.
+\end{proof}
+
+\begin{lemma}\label{lem:pert6}
+Repeat the conditions of Lemma~\ref{lem:pert4}.
+Then, for all $\w \in \R^n$ and $\y \in \R^{\ell}$, we have
+\[
+\abs{ \w^\top \matA^\top \matB \y - \w^\top \matA^\top \matS^\top \matS \matB \y  } \leq \eps \cdot \norm{\matA \w} \cdot \norm{\matB \y}.
+\]
+\end{lemma}
+\begin{proof}
+Let $\matE =  \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} - \matU_{\matA}^\top \matU_{\matB}$. Now,
+%$ \abs{ \w^\top \matA^\top \matB \y - \w^\top \matA^\top \matS^\top \matS \matB \y  } =$
+\begin{align*}
+\abs{ \w^\top \matA^\top \matB \y - \w^\top \matA^\top \matS^\top \matS \matB \y  } & =   \abs{ \w^\top \matV_{\matA}\matSig_{\matA} \matE \matSig_{\matB} \matV_{\matB}^\top \y  }
+\leq  \norm{\w^\top \matV_{\matA}\matSig_{\matA}} \norm{\matE} \norm{\matSig_{\matB} \matV_{\matB}^\top \y}\\
+&=    \norm{\w^\top \matV_{\matA}\matSig_{\matA}\matU_{\matA}^\top} \norm{\matE} \norm{\matU_{\matB}\matSig_{\matB} \matV_{\matB}^\top \y}
+=    \norm{\w^\top \matA^\top} \norm{\matE} \norm{\matB \y}\\
+&=    \norm{\matE}  \norm{\matA \w} \norm{\matB \y}
+\end{align*}
+Now, Lemma 7
+%Lemma~\ref{lem:pert4}
+ensures that $\norm{\matE} \le \eps$.
+\end{proof}
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{CCA of Row Sampled Pairs}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+
+Given $\matA$ and $\matB$, one straightforward way to accelerate CCA is to sample rows uniformly from both matrices, and to compute the CCA of the smaller matrices. %Most methods for computing the canonical correlations benefit from smaller matrices.
+In this section we show that if we sample enough rows, then the canonical correlations of the sampled pair are close to the canonical correlations of the original pair. Furthermore, the canonical weights of the sampled pair can be used to find approximate canonical vectors. Not surprisingly, the sample size depends on the coherence. More specifically, it depends on the coherence of $[\matA ; \matB]$.
+
+\begin{theorem}\label{thm1}
+Suppose $\matA \in \R^{m \times n}$ ($m \geq n$) has rank $p$ and $\matB \in \R^{m \times \ell}$ ($m \geq \ell$) has rank $q \le p$. Let $0 < \eps < 1/2$ be an accuracy parameter and $0 < \delta < 1$ be a failure probability parameter. Let $\omega = \rank{[\matA ; \matB]} \leq p+q$. Let $r$ be an integer such that
+\[
+54 \eps^{-2} m  \mu([\matA ; \matB]) \log ( 12 \omega /\delta) \leq r \leq m \,.
+\]
+Let $T$ be a random subset of $[m]$ of cardinality $r$, drawn from a uniform distribution over such subsets,
+and let $\matS \in \R^{r \times m}$ be the sampling matrix corresponding to $T$ rescaled by $\sqrt{m/r}$.
+Denote $\hat{\matA} = \matS \matA$ and $\hat{\matB} = \matS  \matB$.
+
+Let $\hat{\sigma}_1,\dots,\hat{\sigma}_q$  be the exact canonical correlations of $(\hat{\matA}, \hat{\matB})$,
+and let
+\[
+\w_1=\hat{\x}_1 / \norm{\hat{\matA} \hat{\x}_1}, \dots, \w_p=\hat{\x}_q / \norm{\hat{\matA} \hat{\x}_q}\,,
+\quad \text{and}\quad
+\p_1=\hat{\y}_1 / \norm{\hat{\matB} \hat{\y}_1}, \dots, \p_q = \hat{\y}_q / \norm{\hat{\matB} \hat{\y}_q}
+\]
+be the exact canonical weights of $(\hat{\matA}, \hat{\matB})$. With probability of at least $1-\delta$ all the following hold simultaneously:
+\begin{enumerate}[(a)]
+    \item
+    (Approximation of Canonical Correlations) For every $i=1,2,\ldots ,q$: $ | \sigma_i\left(\matA, \matB \right) - \sigma_i\left( \matS \matA, \matS  \matB \right)| \le  \eps + 2\eps^2 / 9 = O(\eps)\,.$
+	\item
+	(Approximate Orthonormal Bases) The vectors $\{\matA \w_i\}_{i\in{[q]}}$ form an approximately orthonormal basis. That is,
+    for any $c \in [q]$,
+%
+\[\frac{1}{1+\eps/3} \leq \norm{\matA \w_c}^2 \leq \frac{1}{1-\eps/3}\,,\]
+%
+and for any $i\neq j$,
+\[|
+\ip{\matA \w_i}{ \matA \w_j}| \leq \frac{\eps}{3 - \eps}.
+\]
+Similarly, for the set of $\{\matB \p_i\}_{i\in{[q]}}$.
+	\item
+(Approximate Correlation) For every $i=1,2,\ldots ,q$:
+\[
+\frac{\sigma_i(\matA,\matB)}{1+\eps/3} - \frac{\eps/3}{1-\eps/9} \leq \sigma(\matA \w_i, \matB \p_i) \leq \frac{\sigma_i(\matA,\matB)}{1-\eps/3} + \frac{\eps/3}{(1-\eps/3)^2}\,.
+\]
+\end{enumerate}
+\end{theorem}
+%
+%
+\begin{proof}
+Let $\matC :=  [\matU_{\matA} ; \matU_{\matB}]$. Lemma~\ref{lemma:sampling-ortho} implies that each of the following three assertions hold with probability of at least $1-\delta/3$, hence all three hold simultaneously with probability of at least $1-\delta$:
+\begin{itemize}
+\item For every $r\in[p]$: $1-\eps/3 \le \sigma_r^2(\matS \matU_{\matA}) \le  1+\eps/3\,.$
+\item For every $k\in[q]$: $1-\eps/3 \le \sigma_k^2(\matS \matU_{\matB}) \le  1+\eps/3\,.$
+\item For every $h\in[\omega]$: $1-\eps/3 \le \sigma_h^2(\matS \matU_{\matC}) \le  1+\eps/3\,.$
+\end{itemize}
+We now show that if indeed all three hold, then (a)-(c) hold as well.
+
+{\bf Proof of (a).} Corollary~\ref{cor:bjork-golub} implies that
+$\sigma_i(\matA, \matB) = \sigma_i(\matU^\top_\matA \matU_\matB)$ and
+$\sigma_i(\matS \matA, \matS \matB) = \sigma_i(\matU^\top_{\matS \matA} \matU_{\matS \matB})$.
+We now use the triangle inequality to get,
+\begin{align*}
+| \sigma_i \left( \matA, \matB \right) -  \sigma_i \left(\matS \matA, \matS\matB \right) |
+    & =   | \sigma_i \left( \matU_{\matA}^\top\matU_{\matB} \right) -   \sigma_i \left( \matU_{\matS\matA}^\top\matU_{\matS\matB} \right) |  \\
+%    & =  | \sigma_i \left( \matU_{\matA}^\top\matU_{\matB} \right)  - \sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) +  \sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) -   \sigma_i \left( \matU_{\matS\matA}^\top\matU_{\matS\matB} \right) | \\
+    & \leq   | \sigma_i \left( \matU_{\matA}^\top\matU_{\matB} \right)  - \sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right)|
+ 	   +    |\sigma_i\left( \matU_{\matA}^\top \matS^\top \matS \matU_{\matB} \right) -   \sigma_i \left( \matU_{\matS\matA}^\top\matU_{\matS\matB} \right) |.
+\end{align*}
+To conclude the proof, use Lemma~\ref{lem:pert4} and Lemma~\ref{lem:pert5} to bound these two terms, respectively.
+
+{\bf Proof of (b).} For any $c \in [q]$, $\norm{\matA \w_c} = \norm{\matA \w_c} / \norm{\hat{\matA} \w_c}$ since $\norm{\hat{\matA} \w_c} = 1$. Now use Lemma~\ref{lem:pert6}. For any $i\neq j$
+\begin{align*}
+	|\ip{\matA \w_i}{ \matA \w_j }| & \leq  |\w_i^\top \hat{\matA}^\top \hat{\matA}  \w_j|
+	   +   |\w_i^\top (\hat{\matA}^\top \hat{\matA} - \matA^\top \matA)\w_j|
+       =   |\w_i^\top (\hat{\matA}^\top \hat{\matA} - \matA^\top \matA)\w_j| \\
+	& \leq  \frac{\eps}{3} \norm{\matA \w_i} \norm{\matA \w_j}
+	 \leq  \frac{\eps/3}{1-\eps/3} \norm{\hat{\matA}\w_i}\norm{\hat{\matA}\w_j}
+	   =   \frac{\eps}{3-\eps}.
+\end{align*}
+In the above, we used the triangle inequality, the fact that the $\w_i$'s are the canonical weights of $\hat{\matA}$, and Lemma~\ref{lem:pert6}.
+
+{\bf Proof of (c).} We only prove the upper bound. The lower bound is similar, and we omit it.\\
+\small
+%$\sigma\left(\matA \w_i, \matB \p_i\right) = $
+\begin{align*}
+\sigma\left(\matA \w_i, \matB \p_i\right)	 & =  \frac{\ip{\matA\w_i}{\matB\p_i}}{\norm{\matA\w_i}\norm{\matB\p_i}}
+					 						 \leq \frac{1}{1-\eps/3}\cdot\ip{\matA\w_i}{\matB\p_i}
+                                               =   \frac{1}{1-\eps/3}\cdot \left( \ip{\hat{\matA}\w_i}{\hat{\matB}\p_i}
+                                                 +  \w^\top_i\left(\matA^\top\matB - \hat{\matA}^\top\hat{\matB} \right)\p_i \right) \\
+                                              &   \leq   \frac{\sigma\left(\hat{\matA} \x_i, \hat{\matB}\y_i\right)}{1-\eps/3}
+                                                 +   \frac{\eps/3}{1-\eps/3}\cdot\norm{\matA\w_i}\cdot\norm{\matB\p_i}
+											     \leq   \frac{\sigma\left(\hat{\matA} \w_i, \hat{\matB}\p_i\right)}{1-\eps/3} + \frac{\eps/3}{(1-\eps/3)^2}
+\end{align*}
+In the above,
+the first equality follows by the definition of $\sigma(\cdot,\cdot)$,
+the first inequality by using $1=\norm{\hat{\matA}\w_i}^2 \leq (1+\eps) \norm{\matA\w_i}^2$ (same holds for $\matB\p_i$),
+the second inequality from Lemma~\ref{lem:pert6},
+the third inequality  by using $(1-\eps)\norm{\matA\w_i}^2\leq \norm{\hat{\matA} \w_i}^2 =1$ (same holds for $\matB\p_i$),
+and the last inequality by (a).
+\end{proof}
+
+
+
+
+
+\subsection{Fast Approximate CCA}\label{sec:alg}
+
+First, we define what we mean by approximate CCA.
+\begin{definition}[Approximate CCA] \label{def:approxCCA}
+For $0 \leq \eta \leq 1$, an {\em $\eta$-approximate CCA of $(\matA, \matB)$}, is a set of positive numbers $\hat{\sigma}_1,\dots,\hat{\sigma}_q$ together with a set of vectors $\w_1,\dots,\w_q$ for $\matA$ and a set of vectors $\p_1,\dots,\p_q$ for $\matB$, such that
+\begin{enumerate}[(a)]
+\item For every $i\in[q]$, $|\sigma_i(\matA, \matB) - \hat{\sigma}_i | \leq \eta\,.$
+\item For every $i\in[q]$, \[|\norm{\matA \w_i}^2 - 1 | \leq \eta\,,\] and for $i\neq j$, \[|\ip{\matA \w_i}{ \matA \w_j}| \leq \eta\,.\] Similarly, for the set of $\{\matB \p_i\}_{i\in{[q]}}$.
+\item For every $i\in[q]$, $|\sigma_i(\matA, \matB) - \sigma(\matA \w_i, \matB \p_i) | \leq \eta\,.$
+\end{enumerate}
+\end{definition}
+We are now ready to present our fast algorithm for approximate CCA of a pair of tall-and-thin matrices. Algorithm~\ref{alg:approx} gives the pseudo-code description of our algorithm.
+
+The analysis in the previous section (Theorem~\ref{thm1}) shows that if we sample enough rows, the canonical correlations and weights of the sampled matrices are an $O(\eps)$-approximate CCA of $(\matA, \matB)$. However, to turn this observation into a concrete algorithm we need an upper bound on the coherence of $[\matA ; \matB]$. It is conceivable that in certain scenarios such an upper bound might be known in advance, or that it can be computed quickly~\cite{DMMW12}. However, even if we know the coherence, it might be as large as one, which will imply that sampling the entire matrix is needed.
+
+To circumvent this problem, our algorithm uses the RHT to reduce the coherence of the matrix pair before sampling rows from it. In particular, instead of sampling rows from $(\matA, \matB)$  we sample rows from $(\matTh \matA, \matTh\matB)$, where $\matTh$ is a RHT matrix (Definition~\ref{def:rht}). This unitary transformation bounds the coherence with high probability, so we can use Theorem~\ref{thm1} to compute the number of rows required for an $O(\eps)$-approximate CCA.
+We now sample the transformed pair $(\matTh \matA, \matTh\matB)$ to obtain $(\hat{\matA}, \hat{\matB})$. Now the canonical correlations and weights of $(\hat{\matA}, \hat{\matB})$ are computed and returned.
+\begin{algorithm}[t]
+\caption{Fast Approximate CCA}
+\label{alg:approx}
+\begin{algorithmic}[1]
+\State {\bf Input:} $\matA \in \RR^{m \times n}$ of rank $p$, $\matB \in \RR^{m \times \ell}$ of rank $q$, $0< \eps < 1/2$, and $\delta$ ($n\geq l$, $p \ge q$).
+\medskip
+\State $r \longleftarrow \min(54\eps^{-2}\left[\sqrt{n+\ell} + \sqrt{8\log(12m/\delta)} \right]^2 \log (3(n+\ell)/\delta), m)$
+\State Let $\matS$ be the sampling matrix of a random subset of $[m]$ of cardinality $r$ (uniform distribution).
+\State Draw a random diagonal matrix $\matD$ of size $m$ with $\pm 1$ on its diagonal with equal probability.
+\State $\hat{\matA} \longleftarrow \matS \matH \cdot (\matD \matA)$ using fast subsampled WHT (see Section~\ref{sec:wht}).
+\State $\hat{\matB} \longleftarrow \matS \matH \cdot (\matD \matB)$ using fast subsampled WHT (see Section~\ref{sec:wht}).
+\State Compute and return the canonical correlations and the canonical weights of $( \hat{\matA},\hat{\matB} )$
+(e.g. using Bj{\"o}rck and Golub's algorithm).
+\end{algorithmic}
+\end{algorithm}
+
+\begin{theorem}\label{thm:alg}
+With probability of at least $1-\delta$, Algorithm~\ref{alg:approx} returns an $O(\eps)$-approximate CCA of $(\matA, \matB)$. Assuming Bj{\"o}rck and Golub's algorithm is used in line 7, Algorithm~\ref{alg:approx} runs in time
+$$O\left(  m n \log{m} +  \eps^{-2}\left[\sqrt{n} + \sqrt{\log(m/\delta)}\right]^2 \log(n/\delta) n^2\right)\,.$$
+\end{theorem}
+
+\begin{proof}
+%First we argue about the quality of approximation of Algorithm~\ref{alg:approx} and then about its time complexity.
+Lemma~\ref{lem:rht-reduce} ensures that with probability of at least $1-\delta/2$,
+$$\mu([\matTh \matA; \matTh \matB]) \leq \frac{1}{m} \left( \sqrt{n+\ell} + \sqrt{8\log(3m/\delta)} \right)^2\,.$$
+Assuming that the last inequality holds, Theorem~\ref{thm1} ensures that with probability of at least $1-\delta/2$,
+the canonical correlations and weights of $(\hat{\matA},  \hat{\matB})$ form an $O(\eps)$-approximate CCA of
+$(\matTh \matA, \matTh \matB)$. By the union bound, both events hold together with probability of at least $1-\delta$.
+The RHT transforms applied to $\matA$ and $\matB$ are unitary, so for every $\eta$, an $\eta$-approximate CCA of $(\matTh \matA, \matTh \matB)$ is also an $\eta$-approximate CCA of $(\matA, \matB)$ (and vice versa).
+
+{\bf Running time analysis.}
+Step 2 takes $O(1)$ operations. Step 3 requires $O(r)$ operations.
+Step 4 requires $O(m)$ operations.
+Step 5 involves the multiplication of $\matA$ with $\matS \matH \matD$ from the left.
+Computing $\matD \matA$ requires $O(mn)$ time. Multiplying $\matS \matH$ by $\matD \matA$ using fast subsampled WHT requires
+$O(m n \log r )$ time, as explained in Section~\ref{sec:wht}.
+Similarly, step 6 requires $O( m \ell \log r )$ operations.
+Finally, step 7 takes $O( r n \ell + r (n^2 + \ell^2))$ time.  Assuming that $n \geq \ell$, the total running time is
+$O(r n^2 + m n \log(r))$. Plugging the value for $r$, and using the fact that $r \leq m$, established our running time bound.
+
+%Computing $\hat{\matA}$ involves flipping the signs of $\matA$ ($O(mn)$ operations), computing a WHT transform of an $m \times n$ matrix ($O(mn \log(m))$ operations), and sampling $r$ rows ($O(rn)$ operations). However, we are interested only in the sample rows, so by coupling the WHT and the sampling, we can compute $\hat{\matA}$ in
+%$O(m n \log(r))$ time\footnote{In practice it might be better to compute all entries since it allows the use of optimized libraries.}. Similarly, $O(m \ell \log(r))$ time for $\hat{\matB}$.
+
+%There is more than one way to compute the correlations of $(\hat{\matA}, \hat{\matB})$. If we use Bj{\"o}rck and Golub's algorithm, the running time is $O(r (n^2 + \ell^2))$. Since we assume that $n \geq \ell$, the total running time is
+%$O(r n^2 + m n \log(r))$, where $r = \min(54\eps^{-2}\left[\sqrt{n+\ell} + \sqrt{8\log(12m/\delta)} \right]^2 \log (3(n+\ell)/\delta), m)$. Plugging in the value of $r$, and using the fact that $r \leq m$, we find that the total running time is $O\left( \eps^{-2}\left[\sqrt{n} + \sqrt{\log{m/\delta}}\right]^2 \log(n/\delta) n^2 + m n \log{m}\right)$.
+
+%\vspace*{-0.05in}
+\end{proof}
+
+%\vspace*{-0.15in}
+
+% Removal candidate:
+From a practical point of view, our algorithm is useful
+for measuring the size of the correlated subspace, and obtaining
+the principal vectors of it. $\eps$ is $0.1$, or perhaps $0.01$. So for reasonably high correlations,
+say above $0.2$, we get some useful information. However, for lower correlations we
+get no information at all. Furthermore, it is too expensive to compute
+all the principal vectors, but once we know the size of the correlated subspace
+we can use the approximate weights to compute the vectors for that subspace.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Optimality of bounds
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Relative vs. Additive Error}\label{sec:error:lowerbound}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Now, we demonstrate that, unless $r \approx m$, it is not possible to replace the additive error guarantees of Theorem~\ref{thm:alg} with relative error guarantees.
+%
+\begin{lemma}
+Assume that given any matrix pair ($\matA$, $\matB$) and any constant $0<\eps <1$, Algorithm~\ref{alg:approx} computes a pair $(\hat{\matA}, \hat{\matB})$ by setting a sufficient large value for $r$ in Step $2$ so that the canonical correlations are relatively preserved with constant probability, i.e., with constant probability:
+\begin{align*}
+	(1-\eps) \sigma_i(\matA,\matB) \leq \sigma_i(\hat{\matA},\hat{\matB}) \leq (1+\eps) \sigma_i(\matA,\matB), \quad i=1,\ldots ,q.
+\end{align*}
+Then, it follows that $r = \Omega( m/\log(m))$.
+\end{lemma}
+%
+%
+\begin{proof}
+The proof follows by a reduction to the set disjointness communication complexity problem. In particular, assume that Alice gets an $\x\in\{0,1\}^m$ as input and Bob gets $\y\in\{0,1\}^m$. Their goal is to decide if there exists $i\in{[m]}$ so that $x_i = y_i = 1$ by exchanging as less information as possible. It is known that the randomized communication complexity of this problem is $\Omega(m)$, see~\cite{DISJ} for a modern proof.
+
+Set $\eps = 1/2$ and let $\delta$ be a constant in Algorithm~\ref{alg:approx}. Now, Alice and Bob can compute $\widetilde{\x} = \sqrt{m}\matS \matH\matD \x$ and $\widetilde{\y} = \sqrt{m}\matS \matH\matD \y$, respectively (using shared randomness). Then, Alice sends to Bob $\widetilde{\x}$. With constant probabilty, it holds
+%
+	\[ \frac1{2}\frac{\ip{\x}{\y}}{\norm{\x}\norm{\y}} \leq \frac1{r} \frac{\ip{\widetilde{\x}}{\widetilde{\y}}}{\norm{\widetilde{\x}}\norm{\widetilde{\y}}} \leq \frac{3}{2} \frac{\ip{\x}{\y}}{\norm{\x}\norm{\y}}. \]
+%
+Now, Bob can decide if there exists $i$, so that $x_i=y_i =1$ by checking if $\ip{\widetilde{\x}}{\widetilde{\y}}$ is zero or not. Hence, this protocol decides the set disjointness problem. Now, since $\sqrt{m}\matS\matH \matD$ is an $r\times m$ matrix with entries from $\{-1,+1\}$, it follows that $\infnorm{\widetilde{\x}} \leq m$. Therefore, we can encode $\widetilde{\x}$ using at most $r \log(2m)$ bits. It follows by the linear lower bound for set disjointness that $r\log(2m) \geq C m$ for some constant $C>0$.
+\end{proof}
+%
+%
+%
+%
