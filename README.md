@@ -1,4 +1,4 @@
-# My PhD thesis source code
+# PhD thesis source code
 
 Official PhD available from [University of Toronto](https://tspace.library.utoronto.ca/handle/1807/36082).
 
