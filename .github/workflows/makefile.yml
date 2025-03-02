@@ -1,0 +1,18 @@
+name: Latex CI
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    steps:
+    - uses: xu-cheng/latex-action@v3
+
+    - name: Run latex
+      run: make all
+
+    
